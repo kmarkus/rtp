@@ -1,13 +1,17 @@
 #include <time.h>
 #include <string.h>
 
+extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
 
+int luaopen_rtposix(lua_State *L);
+}
+
 /* helpers */
 
-int clock_num_to_id(const char *name)
+static int clock_num_to_id(const char *name)
 {
 	if(!strcmp(name, "REALTIME"))
 		return CLOCK_REALTIME;
@@ -21,7 +25,7 @@ int clock_num_to_id(const char *name)
 		return -1;
 }
 
-void setfield(lua_State *L, const char *index, int value)
+static void setfield(lua_State *L, const char *index, int value)
 {
 	lua_pushinteger(L, value);
 	lua_setfield(L, -2, index);
