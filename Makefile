@@ -1,4 +1,4 @@
-CC=g++
+CC=gcc
 CFLAGS=-lrt -Wall
 #INCLUDES=$(shell lua-config50 --include) 
 #LIBS=$(shell lua-config50 --libs)

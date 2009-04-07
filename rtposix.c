@@ -1,13 +1,19 @@
 #include <time.h>
 #include <string.h>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
+
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
 
 int luaopen_rtposix(lua_State *L);
+
+#ifdef __cplusplus
 }
+#endif
 
 /* helpers */
 
