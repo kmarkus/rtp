@@ -1,5 +1,7 @@
 #include <time.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/mman.h>		/* mlockall etc. */
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,13 +11,18 @@ extern "C" {
 #include <lauxlib.h>
 #include <lualib.h>
 
-int luaopen_rtposix(lua_State *L);
+	int luaopen_rtposix(lua_State *L);
 
 #ifdef __cplusplus
 }
 #endif
 
-/* helpers */
+
+#define ERRBUF_LEN 30
+
+/*
+ * helpers
+ */
 
 static int clock_num_to_id(const char *name)
 {
@@ -86,6 +93,7 @@ static int lua_getres(lua_State *L)
 
 	return 1;
 }
+
 /* args: clock_id, flags (rel|abs), sec, nsec */
 static int lua_nanosleep(lua_State *L)
 {
@@ -119,11 +127,61 @@ static int lua_nanosleep(lua_State *L)
 	return 1;
 }
 
+/*
+ * mlockall
+ *
+ * args: flag MCL_CURRENT | MCL_FUTURE
+ */
+
+static int lua_mlockall(lua_State *L)
+{
+	const char *str_flag;
+	char errbuf[ERRBUF_LEN];
+	int flag, ret;
+
+	flag = 0;
+	str_flag = luaL_checkstring(L, 1);
+
+	if(!strcmp(str_flag, "MCL_CURRENT"))
+		flag |= MCL_CURRENT;
+
+	if(!strcmp(str_flag, "MCL_FUTURE"))
+		flag |= MCL_FUTURE;
+
+	ret = mlockall(flag);
+
+	if(ret < 0) {
+		strerror_r(errno, errbuf, ERRBUF_LEN);
+		luaL_error(L, errbuf);
+	}
+
+	lua_pushboolean(L, 1);
+	return 1;
+}
+
+static int lua_munlockall(lua_State *L)
+{
+	int ret;
+	char errbuf[ERRBUF_LEN];
+
+	ret = munlockall();
+
+	if(ret < 0) {
+		strerror_r(errno, errbuf, ERRBUF_LEN);
+		luaL_error(L, errbuf);
+	}
+
+	lua_pushboolean(L, 1);
+	return 1;
+}
+
 
 static const struct luaL_Reg rtposix [] = {
 	{"gettime", lua_gettime},
 	{"getres", lua_getres},
 	{"nanosleep", lua_nanosleep},
+	{"mlockall", lua_mlockall},
+	{"munlockall", lua_munlockall},
 	{NULL, NULL}
 };
 

@@ -1,12 +1,14 @@
 CC=gcc
 CFLAGS=-lrt -Wall
-#INCLUDES=$(shell lua-config50 --include) 
-#LIBS=$(shell lua-config50 --libs)
+#INCLUDES=$(shell lua-config --include) 
+#LIBS=$(shell lua-config --libs)
+INCLUDE=-I/usr/include/lua5.1/
+# LIBS=-llua
 
 all: rtposix.so
 
 rtposix.o: rtposix.c
-	${CC} ${CFLAGS} -fpic -c rtposix.c -o $@
+	${CC} ${CFLAGS} ${INCLUDE} -fpic -c rtposix.c -o $@
 
 rtposix.so: rtposix.o
 	${CC} ${CFLAGS} -shared ${INCLUDES} ${LIBS} rtposix.o -o rtposix.so
