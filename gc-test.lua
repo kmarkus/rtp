@@ -2,8 +2,8 @@
 require("rtposix")
 
 param = {}
-param.tabnum = 1
-param.tabsize = 1000000
+param.tabnum = 100
+param.tabsize = 100
 
 function gen_garbage(num, tabsize)
    for n = 1,num do
@@ -99,6 +99,10 @@ stats = {}
 stats.dur_min = { sec=math.huge, nsec=math.huge }
 stats.dur_max = { sec=0, nsec=0 }
 
+rtposix.mlockall("MCL_BOTH")
+rtposix.sched_setscheduler(0, "SCHED_FIFO", 99)
+
+
 stop_gc()
 print("doing initial full collect")
 print_gcstat(timed_gc("collect"))
@@ -117,6 +121,7 @@ for i = 1,math.huge do
       print_stats(stats)
    end
 
+   rtposix.nanosleep("MONOTONIC", "rel", 0, 100000000)
 end
 
 print("Statistics")

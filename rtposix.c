@@ -2,6 +2,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/mman.h>		/* mlockall etc. */
+#include <sched.h>		/* sched_setscheduler, sched_getscheduler */
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,14 +140,16 @@ static int lua_mlockall(lua_State *L)
 	char errbuf[ERRBUF_LEN];
 	int flag, ret;
 
-	flag = 0;
 	str_flag = luaL_checkstring(L, 1);
 
 	if(!strcmp(str_flag, "MCL_CURRENT"))
-		flag |= MCL_CURRENT;
+		flag = MCL_CURRENT;
 
 	if(!strcmp(str_flag, "MCL_FUTURE"))
-		flag |= MCL_FUTURE;
+		flag = MCL_FUTURE;
+
+	if(!strcmp(str_flag, "MCL_BOTH"))
+		flag = MCL_CURRENT | MCL_FUTURE;
 
 	ret = mlockall(flag);
 
@@ -175,6 +178,42 @@ static int lua_munlockall(lua_State *L)
 	return 1;
 }
 
+static int lua_sched_setscheduler(lua_State *L)
+{
+	int prio, pid, policy;
+	const char *str_policy;
+	char errbuf[ERRBUF_LEN];
+	struct sched_param schedp;
+
+	memset(&schedp, 0, sizeof(schedp));
+
+	pid = luaL_checknumber(L, 1);
+	str_policy = luaL_checkstring(L, 2);
+	prio = luaL_checknumber(L, 3);
+
+	if(!strcmp(str_policy, "SCHED_FIFO")) {
+		policy = SCHED_FIFO;
+		schedp.sched_priority = prio;
+	} else if (!strcmp(str_policy, "SCHED_RR")) {
+		policy = SCHED_RR;
+		schedp.sched_priority = prio;
+	} else if (!strcmp(str_policy, "SCHED_OTHER")) {
+		policy = SCHED_OTHER;
+		schedp.sched_priority = 0;
+	} else {
+		luaL_error(L, "invalid scheduling policy: %s", str_policy);
+	}
+
+	printf("sched_setscheduler: pid=%d, policy=%s, prio=%d\n", pid, str_policy, prio);
+
+	if(sched_setscheduler(pid, policy, &schedp)) {
+		strerror_r(errno, errbuf, ERRBUF_LEN);
+		luaL_error(L, errbuf);
+	}
+
+	lua_pushboolean(L, 1);
+	return 1;
+}
 
 static const struct luaL_Reg rtposix [] = {
 	{"gettime", lua_gettime},
@@ -182,6 +221,7 @@ static const struct luaL_Reg rtposix [] = {
 	{"nanosleep", lua_nanosleep},
 	{"mlockall", lua_mlockall},
 	{"munlockall", lua_munlockall},
+	{"sched_setscheduler", lua_sched_setscheduler},
 	{NULL, NULL}
 };
 
