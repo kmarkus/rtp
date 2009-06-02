@@ -5,7 +5,7 @@ CFLAGS=-lrt -Wall
 INCLUDE=-I/usr/include/lua5.1/
 # LIBS=-llua
 
-all: rtposix.so
+all: rtposix.so pthreads.so
 
 rtposix.o: rtposix.c
 	${CC} ${CFLAGS} ${INCLUDE} -fpic -c rtposix.c -o $@
@@ -13,8 +13,15 @@ rtposix.o: rtposix.c
 rtposix.so: rtposix.o
 	${CC} ${CFLAGS} -shared ${INCLUDES} ${LIBS} rtposix.o -o rtposix.so
 
+pthreads.o: pthreads.c
+	${CC} ${CFLAGS} ${INCLUDE} -fpic -c pthreads.c -o $@
+
+pthreads.so: pthreads.o
+	${CC} ${CFLAGS} -shared ${INCLUDES} ${LIBS} pthreads.o -o pthreads.so
+
+
 clean:
-	rm -f *.o rtposix.o *.so *~
+	rm -f *.o *.so *~
 
 # gcc -I/usr/include/lua -c min.c -o min.o
 # gcc -I/usr/include/lua -c example_wrap.c -o example_wrap.o
