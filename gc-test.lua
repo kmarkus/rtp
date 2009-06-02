@@ -1,4 +1,9 @@
+#!/usr/bin/lua
 require("rtposix")
+
+param = {}
+param.tabnum = 1
+param.tabsize = 1000000
 
 function gen_garbage(num, tabsize)
    for n = 1,num do
@@ -46,8 +51,8 @@ function tv2str(t)
    return t.sec .. "s" .." " .. t.nsec .. "ns"
 end
 
-function print_stat(s)
-   print("type: " .. s.type .. ", duration: " .. tv2str(s.dur) .. ", collected: " .. s.mem0 - s.mem1 .. " (" .. s.mem0 .. "/" .. s.mem1 ..")")
+function print_gcstat(s)
+   print("type: " .. s.type .. ", duration: " .. tv2str(s.dur) .. ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")")
 end
 
 -- perform a time gc run
@@ -80,6 +85,12 @@ function start_gc()
    collectgarbage("start")
 end
 
+
+-- helper
+function print_stats(s)
+   print("max duration: " .. tv2str(s.dur_max), "min duration: " .. tv2str(s.dur_min))
+end
+
 -- initalize things
 stats = {}
 stats.dur_min = { sec=math.huge, nsec=math.huge }
@@ -87,30 +98,29 @@ stats.dur_max = { sec=0, nsec=0 }
 
 stop_gc()
 print("doing initial full collect")
-print_stat(timed_gc("collect"))
+print_gcstat(timed_gc("collect"))
 
-for i = 1,10000 do
-   gen_garbage(100, 1000)
+for i = 1,math.huge do
+   gen_garbage(param.tabnum, param.tabsize)
    s = timed_gc("step")
    
    if timercmp(s.dur, stats.dur_min) < 0 then
       stats.dur_min = s.dur
+      print_stats(stats)
    end
 
    if timercmp(s.dur, stats.dur_max) > 0 then
       stats.dur_max = s.dur
+      print_stats(stats)
    end
 
-   -- print_stat(s)
 end
 
 print("Statistics")
-print("max duration: " .. tv2str(stats.dur_max))
-print("min duration: " .. tv2str(stats.dur_min))
-
+print_stats(stats)
 
 print("doing final full collect")
-print_stat(timed_gc("collect"))
+print_gcstat(timed_gc("collect"))
 
 
 
