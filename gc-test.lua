@@ -66,7 +66,10 @@ function timed_gc(type)
    stat.mem0 = collectgarbage("count")
 
    t0 = rtposix.gettime("MONOTONIC")
-   collectgarbage("collect")
+   collectgarbage(type)
+
+   -- is automatically restarted
+   collectgarbage("stop")
    t1 = rtposix.gettime("MONOTONIC")
 
    stat.mem1 = collectgarbage("count")
