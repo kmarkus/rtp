@@ -20,6 +20,13 @@ extern "C" {
 
 
 #define ERRBUF_LEN 30
+#define DEBUG
+
+#ifdef DEBUG
+# define DBG(fmt, args...) printf("%s: " fmt "\n", __FUNCTION__, ##args)
+#else
+# define DBG(fmt, args...) do { } while(0);
+#endif
 
 /*
  * helpers
@@ -142,14 +149,20 @@ static int lua_mlockall(lua_State *L)
 
 	str_flag = luaL_checkstring(L, 1);
 
-	if(!strcmp(str_flag, "MCL_CURRENT"))
+	if(!strcmp(str_flag, "MCL_CURRENT")) {
 		flag = MCL_CURRENT;
+		DBG("MCL_CURRENT");
+	}
 
-	if(!strcmp(str_flag, "MCL_FUTURE"))
+	if(!strcmp(str_flag, "MCL_FUTURE")) {
 		flag = MCL_FUTURE;
+		DBG("MCL_FUTURE");
+	}
 
-	if(!strcmp(str_flag, "MCL_BOTH"))
+	if(!strcmp(str_flag, "MCL_BOTH")) {
 		flag = MCL_CURRENT | MCL_FUTURE;
+		DBG("MCL_BOTH (MCL_CURRENT | MCL_FUTURE)");
+	}
 
 	ret = mlockall(flag);
 
@@ -167,6 +180,7 @@ static int lua_munlockall(lua_State *L)
 	int ret;
 	char errbuf[ERRBUF_LEN];
 
+	DBG("");
 	ret = munlockall();
 
 	if(ret < 0) {
@@ -204,7 +218,7 @@ static int lua_sched_setscheduler(lua_State *L)
 		luaL_error(L, "invalid scheduling policy: %s", str_policy);
 	}
 
-	printf("sched_setscheduler: pid=%d, policy=%s, prio=%d\n", pid, str_policy, prio);
+	DBG("pid=%d, policy=%s, prio=%d", pid, str_policy, prio);
 
 	if(sched_setscheduler(pid, policy, &schedp)) {
 		strerror_r(errno, errbuf, ERRBUF_LEN);
