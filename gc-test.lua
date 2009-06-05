@@ -10,8 +10,10 @@ param.garbage_tabsize = 10
 --param.type = "collect"
 param.type = "step"
 
-param.num_runs = 5000
-param.sleep_ns = 10000000 -- 10ms
+param.num_runs = 10000
+param.sleep_ns = 0 --10000000 -- 10ms
+
+param.quiet = true
 
 -- generate num garbage tables of tabsize
 function gen_garbage(num, tabsize)
@@ -37,6 +39,12 @@ function gen_data(num, tabsize)
 end
 
 -- helpers
+function log(...)
+   if not param.quiet then
+      print(unpack(arg))
+   end
+end
+
 function timersub(t1, t0)
    local res = {}
    if t1.sec == t0.sec then
@@ -73,7 +81,7 @@ function tv2str(t)
 end
 
 function print_gcstat(s)
-   print("type: " .. s.type .. ", duration: " .. tv2str(s.dur) .. ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")")
+   log("type: " .. s.type .. ", duration: " .. tv2str(s.dur) .. ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")")
 end
 
 -- perform a time gc run
@@ -103,11 +111,11 @@ end
 
 function gc_stop()
    collectgarbage("stop")
-   print("stopped GC")
+   log("stopped GC")
 end
 
 function gc_start()
-   print("starting GC")
+   log("starting GC")
    collectgarbage("start")
 end
 
@@ -117,7 +125,7 @@ function gc_setpause(val)
 end
 
 function gc_setstepmul(val)
-   print("setting setstepmul to ", val)
+   log("setting setstepmul to ", val)
    collectgarbage("setstepmul", val)
 end
    
@@ -135,8 +143,9 @@ rtposix.sched_setscheduler(0, "SCHED_FIFO", 99)
 
 gc_stop()
 
-print("doing initial full collect")
+log("doing initial full collect")
 print_gcstat(timed_gc("collect"))
+
 
 for i = 1,param.num_runs do
    
@@ -146,21 +155,22 @@ for i = 1,param.num_runs do
 
    if timercmp(s.dur, stats.dur_min) < 0 then
       stats.dur_min = s.dur
-      print_gcstat(s)
+      -- print_gcstat(s)
    end
 
    if timercmp(s.dur, stats.dur_max) > 0 then
       stats.dur_max = s.dur
-      print_gcstat(s)
+      -- print_gcstat(s)
    end
-
+   -- print_gcstat(s)
+   print(i .. ", " .. s.dur.sec * 1000000 + s.dur.nsec / 1000)
    rtposix.nanosleep("MONOTONIC", "rel", 0, param.sleep_ns)
 end
 
-print("Statistics")
-print("max duration: " .. tv2str(stats.dur_max), "min duration: " .. tv2str(stats.dur_min))
+log("Statistics")
+log("max duration: " .. tv2str(stats.dur_max), "min duration: " .. tv2str(stats.dur_min))
 
-print("doing final full collect")
+log("doing final full collect")
 print_gcstat(timed_gc("collect"))
 
 

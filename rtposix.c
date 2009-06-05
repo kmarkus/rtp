@@ -20,7 +20,7 @@ extern "C" {
 
 
 #define ERRBUF_LEN 30
-#define DEBUG
+#undef DEBUG
 
 #ifdef DEBUG
 # define DBG(fmt, args...) printf("%s: " fmt "\n", __FUNCTION__, ##args)
