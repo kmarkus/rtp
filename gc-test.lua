@@ -13,7 +13,8 @@ param.type = "step"
 param.num_runs = math.huge
 param.sleep_ns = 0
 
-param.quiet = true
+-- output data or not
+param.quiet = false
 
 -- generate num garbage tables of tabsize
 function gen_garbage(num, tabsize)
@@ -40,24 +41,18 @@ end
 
 -- helpers
 function log(...)
-   if not param.quiet then
-      print(unpack(arg))
-   end
+   io.stderr:write(unpack(arg))
+   io.stderr:write("\n")
 end
 
-function timersub(t1, t0)
+function timersub(a, b)
    local res = {}
-   if t1.sec == t0.sec then
-      res.sec = 0
-      res.nsec = t1.nsec - t0.nsec
-   else
-      res.sec = t1.sec - t0.sec
-      res.nsec = t1.nsec + 1000000 - t0.nsec
-      
-      if res.nsec >= 1000000 then
-	 res.sec = res.sec + 1
-	 res.nsec = res.nsec - 1000000
-      end
+   res.sec = a.sec - b.sec
+   res.nsec = a.nsec - b.nsec
+
+   if res.nsec < 0 then
+      res.sec = res.sec - 1
+      res.nsec = res.nsec + 1000000000
    end
    return res
 end
@@ -76,16 +71,16 @@ function timercmp(t1, t2)
    end
 end
 
-function tv2us(tv)
-   return tv.sec * 1000000 + tv.nsec / 1000
+function timespec2us(ts)
+   return ts.sec * 1000000 + ts.nsec / 1000
 end
 
-function tv2str(t)
-   return t.sec .. "s" .." " .. t.nsec .. "ns"
+function timespec2str(ts)
+   return ts.sec .. "s" .." " .. ts.nsec .. "ns"
 end
 
 function print_gcstat(s)
-   log("type: " .. s.type .. ", duration: " .. tv2str(s.dur) .. ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")")
+   log("type: " .. s.type .. ", duration: " .. timespec2str(s.dur) .. ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")")
 end
 
 -- perform a time gc run
@@ -105,7 +100,6 @@ function timed_gc(type)
    collectgarbage("stop")
 
    t1 = rtposix.gettime("MONOTONIC")
-
 
    stat.mem1 = collectgarbage("count")
    stat.dur = timersub(t1,t0)
@@ -159,25 +153,25 @@ for i = 1,param.num_runs do
 
    if timercmp(s.dur, stats.dur_min) < 0 then
       stats.dur_min = s.dur
-      -- print_gcstat(s)
    end
 
    if timercmp(s.dur, stats.dur_max) > 0 then
       stats.dur_max = s.dur
-      -- print_gcstat(s)
    end
-   -- print_gcstat(s)
-   print(i .. ", " .. s.dur.sec * 1000000 + s.dur.nsec / 1000)
+
+   if not param.quiet then
+      print(i .. ", " .. timespec2us(s.dur))
+   end
 
    if i % 30000 == 0 then
-      io.stderr:write("max duration: " .. tv2us(stats.dur_max), ", min duration: " .. tv2us(stats.dur_min) .."\n")
+      io.stderr:write("max duration: " .. timespec2us(stats.dur_max) .."us", ", min duration: " .. timespec2us(stats.dur_min) .."us\n")
    end
 
    rtposix.nanosleep("MONOTONIC", "rel", 0, param.sleep_ns)
 end
 
 log("Statistics")
-log("max duration: " .. tv2str(stats.dur_max), "min duration: " .. tv2str(stats.dur_min))
+log("max duration: " .. timespec2str(stats.dur_max), " min duration: " .. timespec2str(stats.dur_min))
 
 log("doing final full collect")
 print_gcstat(timed_gc("collect"))
