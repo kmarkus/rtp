@@ -10,8 +10,8 @@ param.garbage_tabsize = 10
 --param.type = "collect"
 param.type = "step"
 
-param.num_runs = 10000
-param.sleep_ns = 0 --10000000 -- 10ms
+param.num_runs = math.huge
+param.sleep_ns = 0
 
 param.quiet = true
 
@@ -74,6 +74,10 @@ function timercmp(t1, t2)
    else
       return 0
    end
+end
+
+function tv2us(tv)
+   return tv.sec * 1000000 + tv.nsec / 1000
 end
 
 function tv2str(t)
@@ -164,6 +168,11 @@ for i = 1,param.num_runs do
    end
    -- print_gcstat(s)
    print(i .. ", " .. s.dur.sec * 1000000 + s.dur.nsec / 1000)
+
+   if i % 30000 == 0 then
+      io.stderr:write("max duration: " .. tv2us(stats.dur_max), ", min duration: " .. tv2us(stats.dur_min) .."\n")
+   end
+
    rtposix.nanosleep("MONOTONIC", "rel", 0, param.sleep_ns)
 end
 
