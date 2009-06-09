@@ -57,6 +57,25 @@ function timersub(a, b)
    return res
 end
 
+function timeradd(a, b)
+   local res = {}
+   res.sec = a.sec + b.sec
+   res.nsec = a.nsec + b.nsec
+
+   if res.nsec >= 1000000000 then
+      res.sec = res.sec + 1
+      res.nsec = res.nsec - 1000000000
+   end
+   return res
+end
+
+function timerdiv(t, d)
+   local res = {}
+   res.sec = t.sec / d
+   res.nsec = t.nsec / d
+   return res
+end
+
 function timercmp(t1, t2)
    if(t1.sec > t2.sec) then
       return 1
@@ -132,6 +151,7 @@ end
 stats = {}
 stats.dur_min = { sec=math.huge, nsec=math.huge }
 stats.dur_max = { sec=0, nsec=0 }
+stats.avg = { sec=0, nsec=0 }
 
 -- initalize data
 gen_data(param.data_tabnum, param.garbage_tabsize)
@@ -151,6 +171,8 @@ for i = 1,param.num_runs do
 
    s = timed_gc(param.type)
 
+   stats.avg = timeradd(stats.avg, s.dur)
+
    if timercmp(s.dur, stats.dur_min) < 0 then
       stats.dur_min = s.dur
    end
@@ -164,7 +186,9 @@ for i = 1,param.num_runs do
    end
 
    if i % 30000 == 0 then
-      io.stderr:write("max duration: " .. timespec2str(stats.dur_max), ", min duration: " .. timespec2str(stats.dur_min) .."\n")
+      io.stderr:write("max: " .. timespec2str(stats.dur_max), 
+		      ", min: " .. timespec2str(stats.dur_min),
+		      ", avg: " .. timespec2str(timerdiv(stats.avg, i)) .. "\n")
    end
 
    rtposix.nanosleep("MONOTONIC", "rel", 0, param.sleep_ns)
