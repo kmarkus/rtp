@@ -2,10 +2,10 @@
 require("rtposix")
 
 param = {}
-param.data_tabnum = 10
-param.data_tabsize = 10
-param.garbage_tabnum = 10
-param.garbage_tabsize = 10
+param.data_tabnum = 20
+param.data_tabsize = 20
+param.garbage_tabnum = 20
+param.garbage_tabsize = 20
 
 --param.type = "collect"
 param.type = "step"
@@ -76,7 +76,7 @@ function timespec2us(ts)
 end
 
 function timespec2str(ts)
-   return ts.sec .. "s" .." " .. ts.nsec .. "ns"
+   return timespec2us(ts) .. "us"
 end
 
 function print_gcstat(s)
@@ -164,7 +164,7 @@ for i = 1,param.num_runs do
    end
 
    if i % 30000 == 0 then
-      io.stderr:write("max duration: " .. timespec2us(stats.dur_max) .."us", ", min duration: " .. timespec2us(stats.dur_min) .."us\n")
+      io.stderr:write("max duration: " .. timespec2str(stats.dur_max), ", min duration: " .. timespec2str(stats.dur_min) .."\n")
    end
 
    rtposix.nanosleep("MONOTONIC", "rel", 0, param.sleep_ns)
