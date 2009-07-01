@@ -157,7 +157,7 @@ function do_test(num_runs, garbage_tabnum, garbage_tabsize,
       end
 
       if not quiet then
-	 print(i .. ", " .. timespec2us(s.dur))
+	 print(i .. ", " .. timespec2us(s.dur) .. ", " .. s.mem0 .. ", " .. s.mem1)
       end
 
       if i % 30000 == 0 then
@@ -222,5 +222,8 @@ log("\tmax dur: ",  timespec2str(stats.dur_max))
 log("\tmin dur: ",  timespec2str(stats.dur_min))
 log("\tavg dur: ",  timespec2str(stats.dur_avg))
 
+if par.quiet then
+   print(timespec2us(stats.dur_max) .. ", " .. timespec2us(stats.dur_min) .. ", " .. timespec2us(timerdiv(stats.dur_avg, par.num_runs)))
+end
 
 
