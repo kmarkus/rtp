@@ -1,20 +1,3 @@
-#!/usr/bin/lua
-require("rtposix")
-
-param = {}
-param.data_tabnum = 20
-param.data_tabsize = 20
-param.garbage_tabnum = 20
-param.garbage_tabsize = 20
-
---param.type = "collect"
-param.type = "step"
-
-param.num_runs = math.huge
-param.sleep_ns = 0
-
--- output data or not
-param.quiet = false
 
 -- generate num garbage tables of tabsize
 function gen_garbage(num, tabsize)
@@ -145,60 +128,99 @@ function gc_setstepmul(val)
    log("setting setstepmul to ", val)
    collectgarbage("setstepmul", val)
 end
-   
 
--- initalize things
-stats = {}
-stats.dur_min = { sec=math.huge, nsec=math.huge }
-stats.dur_max = { sec=0, nsec=0 }
-stats.avg = { sec=0, nsec=0 }
+function do_test(num_runs, garbage_tabnum, garbage_tabsize, 
+		 data_tabnum, data_tabsize, sleep_ns, type, quiet)
 
--- initalize data
-gen_data(param.data_tabnum, param.garbage_tabsize)
+   -- initalize things
+   local stats = {}
+   stats.dur_min = { sec=math.huge, nsec=math.huge }
+   stats.dur_max = { sec=0, nsec=0 }
+   stats.dur_avg = { sec=0, nsec=0 }
+
+   data = gen_data(data_tabnum, data_tabsize)
+
+   for i = 1,num_runs do
+
+      gen_garbage(garbage_tabnum, garbage_tabsize)
+      
+      s = timed_gc(type)
+      
+      stats.dur_avg = timeradd(stats.dur_avg, s.dur)
+
+      if timercmp(s.dur, stats.dur_min) < 0 then
+	 stats.dur_min = s.dur
+      end
+
+      if timercmp(s.dur, stats.dur_max) > 0 then
+	 stats.dur_max = s.dur
+      end
+
+      if not quiet then
+	 print(i .. ", " .. timespec2us(s.dur))
+      end
+
+      if i % 30000 == 0 then
+	 io.stderr:write("max: " .. timespec2str(stats.dur_max), 
+			 ", min: " .. timespec2str(stats.dur_min),
+			 ", avg: " .. timespec2str(timerdiv(stats.dur_avg, i)) .. "\n")
+      end
+      rtposix.nanosleep("MONOTONIC", "rel", 0, sleep_ns)
+   end
+   return stats
+end
+
+function pp_table(t)
+   if t == nil then
+      print("nil table")
+      return nil
+   else
+      for i,v in pairs(t) do
+	 print(i,v)
+      end
+   end
+end
+
+-- execution starts here
+require("rtposix")
+
+if #arg < 8 then
+   io.stderr:write("usage: " .. arg[0] .. " <num_runs> <garbage_tabsize> <garbage_tabnum> <data_tabsize> <data_tabnum> <sleep_ns> <type> <quiet>\n")
+   return false
+end
+
+par = {}
+par.num_runs = arg[1] or 100000
+par.garbage_tabsize = arg[2] or 20
+par.garbage_tabnum = arg[3] or 20
+par.data_tabsize = arg[4] or 20
+par.data_tabnum = arg[5] or 20
+par.sleep_ns = arg[6] or 0
+par.type = arg[7] or "step"
+par.quiet = arg[8] == "true" or false
+
+io.stderr:write("Parameters:\n")
+for k,v in pairs(par) do
+   log("\t", k, ": ", tostring(v))
+end
 
 rtposix.mlockall("MCL_BOTH")
 rtposix.sched_setscheduler(0, "SCHED_FIFO", 99)
 
 gc_stop()
 
-log("doing initial full collect")
+io.stderr:write("running initial full collect: ") --log("doing initial full collect")
 print_gcstat(timed_gc("collect"))
 
+local stats = do_test(par.num_runs, par.garbage_tabsize, par.garbage_tabnum, par.data_tabsize, par.data_tabnum, par.sleep_ns, par.type, par.quiet)
 
-for i = 1,param.num_runs do
-   
-   gen_garbage(param.garbage_tabnum, param.garbage_tabsize)
-
-   s = timed_gc(param.type)
-
-   stats.avg = timeradd(stats.avg, s.dur)
-
-   if timercmp(s.dur, stats.dur_min) < 0 then
-      stats.dur_min = s.dur
-   end
-
-   if timercmp(s.dur, stats.dur_max) > 0 then
-      stats.dur_max = s.dur
-   end
-
-   if not param.quiet then
-      print(i .. ", " .. timespec2us(s.dur))
-   end
-
-   if i % 30000 == 0 then
-      io.stderr:write("max: " .. timespec2str(stats.dur_max), 
-		      ", min: " .. timespec2str(stats.dur_min),
-		      ", avg: " .. timespec2str(timerdiv(stats.avg, i)) .. "\n")
-   end
-
-   rtposix.nanosleep("MONOTONIC", "rel", 0, param.sleep_ns)
-end
+io.stderr:write("running final full collect: ")
+print_gcstat(timed_gc("collect"))
 
 log("Statistics")
-log("max duration: " .. timespec2str(stats.dur_max), " min duration: " .. timespec2str(stats.dur_min))
-
-log("doing final full collect")
-print_gcstat(timed_gc("collect"))
+log("\tmax dur: ",  timespec2str(stats.dur_max))
+log("\tmin dur: ",  timespec2str(stats.dur_min))
+log("\tavg dur: ",  timespec2str(stats.dur_avg))
 
 
 
