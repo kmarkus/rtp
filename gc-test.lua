@@ -160,7 +160,7 @@ function do_test(num_runs, garbage_tabnum, garbage_tabsize,
 	 print(i .. ", " .. timespec2us(s.dur) .. ", " .. s.mem0 .. ", " .. s.mem1)
       end
 
-      if i % 30000 == 0 then
+      if i % 10000 == 0 then
 	 io.stderr:write("max: " .. timespec2str(stats.dur_max), 
 			 ", min: " .. timespec2str(stats.dur_min),
 			 ", avg: " .. timespec2str(timerdiv(stats.dur_avg, i)) .. "\n")
@@ -220,7 +220,7 @@ print_gcstat(timed_gc("collect"))
 log("Statistics")
 log("\tmax dur: ",  timespec2str(stats.dur_max))
 log("\tmin dur: ",  timespec2str(stats.dur_min))
-log("\tavg dur: ",  timespec2str(stats.dur_avg))
+log("\tavg dur: ",  timespec2us(timerdiv(stats.dur_avg, par.num_runs)))
 
 if par.quiet then
    print(timespec2us(stats.dur_max) .. ", " .. timespec2us(stats.dur_min) .. ", " .. timespec2us(timerdiv(stats.dur_avg, par.num_runs)))
