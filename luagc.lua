@@ -15,20 +15,31 @@ function stop()
 end
 
 function start()
-   collectgarbage("start")
+   collectgarbage("restart")
 end
 
-function setpause(val)
+function set_pause(val)
    collectgarbage("setpause", val)
 end
 
-function setstepmul(val)
+function set_stepmul(val)
    collectgarbage("setstepmul", val)
 end
 
 function mem_usage()
    return collectgarbage("count")
 end
+
+function step()
+   collectgarbage("step")
+   stop()
+end
+
+function full()
+   collectgarbage("collect")
+   stop()
+end
+
 
 function gcstat_tostring(s)
    return "type: " .. s.type .. ", duration: " .. time.ts2str(s.dur) ..
