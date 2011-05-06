@@ -12,7 +12,7 @@ extern "C" {
 #include <lauxlib.h>
 #include <lualib.h>
 
-	int luaopen_rtposix(lua_State *L);
+int luaopen_rtposix(lua_State *L);
 
 #ifdef __cplusplus
 }
@@ -32,18 +32,21 @@ extern "C" {
  * helpers
  */
 
-static int clock_num_to_id(const char *name)
+static const int clock_nums[] = {CLOCK_REALTIME,
+				 CLOCK_MONOTONIC,
+				 CLOCK_PROCESS_CPUTIME_ID,
+				 CLOCK_THREAD_CPUTIME_ID};
+
+static const char *const clock_ids[] = {"CLOCK_REALTIME",
+					"CLOCK_MONOTONIC",
+					"CLOCK_PROCESS_CPUTIME_ID",
+					"CLOCK_THREAD_CPUTIME_ID",
+					NULL};
+
+static clockid_t check_clockid(lua_State *L, int idx)
 {
-	if(!strcmp(name, "REALTIME"))
-		return CLOCK_REALTIME;
-	else if(!strcmp(name, "MONOTONIC"))
-		return CLOCK_MONOTONIC;
-	else if(!strcmp(name, "PROCESS_CPUTIME"))
-		return CLOCK_PROCESS_CPUTIME_ID;
-	else if(!strcmp(name, "THREAD_CPUTIME"))
-		return CLOCK_THREAD_CPUTIME_ID;
-	else
-		return -1;
+	int pos = luaL_checkoption(L, idx, NULL, clock_ids);
+	return clock_nums[pos];
 }
 
 static void setfield(lua_State *L, const char *index, int value)
@@ -52,30 +55,11 @@ static void setfield(lua_State *L, const char *index, int value)
 	lua_setfield(L, -2, index);
 }
 
-
-/* arg: <clock id>:
- *
- * REALTIME, MONOTONIC, PROCESS_CPUTIME_ID, THREAD_CPUTIME_ID
- */
-
-static int lua_gettime(lua_State *L)
+static void lua_push_timespec(lua_State *L, struct timespec *ts)
 {
-	const char* clock;
-	int clock_id;
-	struct timespec res;
-
-	clock = luaL_checkstring(L, 1);
-
-	if((clock_id = clock_num_to_id(clock)) == -1)
-		luaL_error(L, "invalid clock %s", clock);
-
-	clock_gettime(clock_id, &res);
-
 	lua_newtable(L);
-	setfield(L, "sec", res.tv_sec);
-	setfield(L, "nsec", res.tv_nsec);
-
-	return 1;
+	setfield(L, "sec", ts->tv_sec);
+	setfield(L, "nsec", ts->tv_nsec);
 }
 
 /* arg: <clock id>:
@@ -84,39 +68,44 @@ static int lua_gettime(lua_State *L)
  */
 static int lua_getres(lua_State *L)
 {
-	const char* clock;
-	int clock_id;
+	clockid_t clockid;
 	struct timespec res;
 
-	clock = luaL_checkstring(L, 1);
-
-	if((clock_id = clock_num_to_id(clock)) == -1)
-		luaL_error(L, "invalid clock %s", clock);
-
-	clock_getres(clock_id, &res);
-
-	lua_newtable(L);
-	setfield(L, "sec", res.tv_sec);
-	setfield(L, "nsec", res.tv_nsec);
-
+	clockid = check_clockid(L, 1);
+	clock_getres(clockid, &res);
+	lua_push_timespec(L, &res);
 	return 1;
 }
+
+/* arg: <clock id>:
+ *
+ * REALTIME, MONOTONIC, PROCESS_CPUTIME_ID, THREAD_CPUTIME_ID
+ */
+
+static int lua_gettime(lua_State *L)
+{
+	clockid_t clockid;
+	struct timespec res;
+
+	clockid = check_clockid(L, 1);
+	clock_gettime(clockid, &res);
+	lua_push_timespec(L, &res);
+	return 1;
+}
+
+/* tbd: clock_settime */
 
 /* args: clock_id, flags (rel|abs), sec, nsec */
 static int lua_nanosleep(lua_State *L)
 {
-	const char *clock, *flag;
-	int clock_id, flag_id;
+	clockid_t clockid;
+	const char *flag;
+	int flag_id;
 	struct timespec req;
 
-
-	clock = luaL_checkstring(L, 1);
-
-	if((clock_id = clock_num_to_id(clock)) == -1)
-		luaL_error(L, "invalid clock %s", clock);
+	clockid = check_clockid(L, 1);
 
 	flag = luaL_checkstring(L, 2);
-
 	if(!strcmp(flag, "rel"))
 		flag_id = 0;
 	else if(!strcmp(flag, "abs"))
@@ -124,11 +113,10 @@ static int lua_nanosleep(lua_State *L)
 	else
 		luaL_error(L, "invalid flag %s", flag);
 
+	req.tv_sec = luaL_checkinteger(L, 3);
+	req.tv_nsec = luaL_checkinteger(L, 4);
 
-	req.tv_sec = lua_tointeger(L, 3);
-	req.tv_nsec = lua_tointeger(L, 4);
-
-	if(!clock_nanosleep(clock_id, flag_id, &req, NULL))
+	if(!clock_nanosleep(clockid, flag_id, &req, NULL))
 		lua_pushboolean(L, 1);
 	else
 		lua_pushboolean(L, 0);
@@ -189,37 +177,40 @@ static int lua_munlockall(lua_State *L)
 	}
 
 	lua_pushboolean(L, 1);
-	return 1;
+ 	return 1;
 }
 
+static const int schedpol_num[] = {
+	SCHED_OTHER, SCHED_FIFO, SCHED_RR
+};
+static const char *const schedpol_ids[] = {
+	"SCHED_OTHER", "SCHED_FIFO", "SCHED_RR", NULL
+};
+
+static int check_schedpol(lua_State *L, int idx)
+{
+	int pos = luaL_checkoption(L, idx, NULL, schedpol_ids);
+	return schedpol_num[pos];
+}
+
+/* args: pid, policy, prio */
 static int lua_sched_setscheduler(lua_State *L)
 {
-	int prio, pid, policy;
-	const char *str_policy;
+	int pid, policy;
+
 	char errbuf[ERRBUF_LEN];
 	struct sched_param schedp;
 
 	memset(&schedp, 0, sizeof(schedp));
 
 	pid = luaL_checknumber(L, 1);
-	str_policy = luaL_checkstring(L, 2);
-	prio = luaL_checknumber(L, 3);
+	policy = check_schedpol(L, 2);
+	
+	schedp.sched_priority = (policy == SCHED_OTHER) ? 0 : luaL_checknumber(L, 3);
 
-	if(!strcmp(str_policy, "SCHED_FIFO")) {
-		policy = SCHED_FIFO;
-		schedp.sched_priority = prio;
-	} else if (!strcmp(str_policy, "SCHED_RR")) {
-		policy = SCHED_RR;
-		schedp.sched_priority = prio;
-	} else if (!strcmp(str_policy, "SCHED_OTHER")) {
-		policy = SCHED_OTHER;
-		schedp.sched_priority = 0;
-	} else {
-		luaL_error(L, "invalid scheduling policy: %s", str_policy);
-	}
+	DBG("pid=%d, policy=%s, prio=%d", pid, schedp.sched_policy, prio);
 
-	DBG("pid=%d, policy=%s, prio=%d", pid, str_policy, prio);
-
+	
 	if(sched_setscheduler(pid, policy, &schedp)) {
 		strerror_r(errno, errbuf, ERRBUF_LEN);
 		luaL_error(L, errbuf);
