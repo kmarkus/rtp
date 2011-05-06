@@ -49,17 +49,11 @@ static clockid_t check_clockid(lua_State *L, int idx)
 	return clock_nums[pos];
 }
 
-static void setfield(lua_State *L, const char *index, int value)
+static int lua_pushtimespec(lua_State *L, struct timespec *ts)
 {
-	lua_pushinteger(L, value);
-	lua_setfield(L, -2, index);
-}
-
-static void lua_push_timespec(lua_State *L, struct timespec *ts)
-{
-	lua_newtable(L);
-	setfield(L, "sec", ts->tv_sec);
-	setfield(L, "nsec", ts->tv_nsec);
+	lua_pushnumber(L, ts->tv_sec);
+	lua_pushnumber(L, ts->tv_nsec);
+	return 2;
 }
 
 /* arg: <clock id>:
@@ -73,8 +67,7 @@ static int lua_getres(lua_State *L)
 
 	clockid = check_clockid(L, 1);
 	clock_getres(clockid, &res);
-	lua_push_timespec(L, &res);
-	return 1;
+	return lua_pushtimespec(L, &res);
 }
 
 /* arg: <clock id>:
@@ -89,8 +82,7 @@ static int lua_gettime(lua_State *L)
 
 	clockid = check_clockid(L, 1);
 	clock_gettime(clockid, &res);
-	lua_push_timespec(L, &res);
-	return 1;
+	return lua_pushtimespec(L, &res);
 }
 
 /* tbd: clock_settime */
