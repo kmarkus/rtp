@@ -30,7 +30,7 @@ static void* startup(void *data)
 	inf->L = lua_open();
 	lua_gc(inf->L, LUA_GCSTOP, 0);
 	luaL_openlibs(inf->L);
-	lua_gc(inf->L, LUA_GCSTOP, 0);
+	lua_gc(inf->L, LUA_GCRESTART, 0);
 
 	lua_pushlightuserdata(inf->L, (void*) &inf->thread);
 	lua_setglobal(inf->L, "self");

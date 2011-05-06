@@ -1,0 +1,8 @@
+
+How can we evaluate Lua for rt gc
+
+ - check the impact of one increasing table
+ - verify effect of __non_gc table tag (once implemented)
+ - how estimate worst case latency introduced by gc?
+ - Lund papers
+
