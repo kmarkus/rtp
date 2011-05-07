@@ -73,7 +73,7 @@ function timed_gc(type)
    return stat
 end
 
---
+---
 -- create a garbage collection test closure which will perform and
 -- collections and record the worst case timing behavior.
 -- parameters:

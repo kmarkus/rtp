@@ -60,7 +60,7 @@ static int lua_pushtimespec(lua_State *L, struct timespec *ts)
  *
  * REALTIME, MONOTONIC, PROCESS_CPUTIME_ID, THREAD_CPUTIME_ID
  */
-static int lua_getres(lua_State *L)
+static int lua_clock_getres(lua_State *L)
 {
 	clockid_t clockid;
 	struct timespec res;
@@ -75,7 +75,7 @@ static int lua_getres(lua_State *L)
  * REALTIME, MONOTONIC, PROCESS_CPUTIME_ID, THREAD_CPUTIME_ID
  */
 
-static int lua_gettime(lua_State *L)
+static int lua_clock_gettime(lua_State *L)
 {
 	clockid_t clockid;
 	struct timespec res;
@@ -88,7 +88,7 @@ static int lua_gettime(lua_State *L)
 /* tbd: clock_settime */
 
 /* args: clock_id, flags (rel|abs), sec, nsec */
-static int lua_nanosleep(lua_State *L)
+static int lua_clock_nanosleep(lua_State *L)
 {
 	clockid_t clockid;
 	const char *flag;
@@ -213,9 +213,9 @@ static int lua_sched_setscheduler(lua_State *L)
 }
 
 static const struct luaL_Reg rtposix [] = {
-	{"gettime", lua_gettime},
-	{"getres", lua_getres},
-	{"nanosleep", lua_nanosleep},
+	{"clock_gettime", lua_clock_gettime},
+	{"clock_getres", lua_clock_getres},
+	{"clock_nanosleep", lua_clock_nanosleep},
 	{"mlockall", lua_mlockall},
 	{"munlockall", lua_munlockall},
 	{"sched_setscheduler", lua_sched_setscheduler},
