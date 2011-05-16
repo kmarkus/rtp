@@ -24,7 +24,8 @@ module("timebench")
 --    'print':	print statistics
 --    'clear':	clear statistics
 --
-function create_bench()
+function create_bench(name)
+   local name = name or ""
    local stats = {}
    local active
 
@@ -47,7 +48,8 @@ function create_bench()
 	     elseif cmd == 'print' then
 		local avg = {}
 		avg.sec, avg.nsec = time.div(stats.total, stats.cnt)
-		io.stderr:write("cnt: " .. stats.cnt,
+		io.stderr:write("Bench " .. name,
+				": cnt: " .. stats.cnt,
 				", max: " .. time.ts2str(stats.dur_max),
 				", min: " .. time.ts2str(stats.dur_min),
 				", avg: " .. time.ts2str(avg) .. "\n")
