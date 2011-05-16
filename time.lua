@@ -3,8 +3,22 @@
 -- take struct timespec tables with 'sec' and 'nsec' fields as input
 -- and return two values sec, nsec
 --
+local math = math
 
 module("time")
+
+-- constants
+local ns_per_s = 1000000000
+local us_per_s = 1000000
+
+--- Normalize time.
+-- @param sec seconds
+-- @param nsec nanoseconds
+function normalize(sec, nsec)
+   local sec_inc = math.floor(nsec / ns_per_s)
+   local nsec_rest = nsec % ns_per_s
+   return sec + sec_inc, nsec_rest
+end
 
 --- Subtract a timespec from another and normalize
 -- @param a timespec to subtract from
@@ -15,7 +29,7 @@ function sub(a, b)
 
    if nsec < 0 then
       sec = sec - 1
-      nsec = nsec + 1000000000
+      nsec = nsec + ns_per_s
    end
    return sec, nsec
 end
@@ -27,9 +41,9 @@ function add(a, b)
    local sec = a.sec + b.sec
    local nsec = a.nsec + b.nsec
 
-   if nsec >= 1000000000 then
+   if nsec >= ns_per_s then
       sec = sec + 1
-      nsec = nsec - 1000000000
+      nsec = nsec - ns_per_s
    end
    return sec, nsec
 end
@@ -44,7 +58,7 @@ function div(t, d)
 end
 
 --- Compare to timespecs
--- @result return 1 if t1 is greater than t2, -1 if t1 is less than t2 and 0 if t1 and t2 are equl
+-- @result return 1 if t1 is greater than t2, -1 if t1 is less than t2 and 0 if t1 and t2 are equal
 function cmp(t1, t2)
    if(t1.sec > t2.sec) then return 1
    elseif (t1.sec < t2.sec) then return -1
@@ -57,11 +71,27 @@ end
 -- @param ts timespec
 -- @result number of microseconds
 function ts2us(ts)
-   return ts.sec * 1000000 + ts.nsec / 1000
+   return ts.sec * us_per_s + ts.nsec / 1000
 end
 
 --- Convert a timespec to a string (in micro-seconds)
 --- for pretty printing purposes
 function ts2str(ts)
    return ts2us(ts) .. "us"
+end
+
+--- Convert timespec to us
+-- @param sec
+-- @param nsec
+-- @return time is us
+function tous(sec, nsec)
+   return sec * us_per_s + nsec / 1000
+end
+
+--- Convert timespec to us string
+-- @param sec
+-- @param nsec
+-- @return time string
+function tostr_us(sec, nsec)
+   return tous(sec, nsec) .. "us"
 end
