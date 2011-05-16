@@ -8,49 +8,27 @@ local collectgarbage, time, rtposix, assert, math, io = collectgarbage, time, rt
 
 module("luagc")
 
-function stop()
-   collectgarbage("stop")
-end
+function stop() collectgarbage("stop") end
+function start() collectgarbage("restart") end
+function set_pause(val) collectgarbage("setpause", val) end
+function set_stepmul(val) collectgarbage("setstepmul", val) end
+function mem_usage() return collectgarbage("count") end
+function step() collectgarbage("step"); stop(); end
+function full() collectgarbage("collect"); stop() end
 
-function start()
-   collectgarbage("restart")
-end
-
-function set_pause(val)
-   collectgarbage("setpause", val)
-end
-
-function set_stepmul(val)
-   collectgarbage("setstepmul", val)
-end
-
-function mem_usage()
-   return collectgarbage("count")
-end
-
-function step()
-   collectgarbage("step")
-   stop()
-end
-
--- step the gc at maximum for us
+--- step the gc at maximum for us
 -- at least one run will be made
-function step_max_us(us)
-end
-
-function full()
-   collectgarbage("collect")
-   stop()
-end
-
+function step_max_us(us) error("unimplemented") end
 
 function gcstat_tostring(s)
    return "type: " .. s.type .. ", duration: " .. time.ts2str(s.dur) ..
    ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")"
 end
 
--- perform a time gc run
--- type is "collect" for full or "step" for incremental
+--- perform a timed gc run
+-- todo: needs update to new syntax!
+-- @param type "collect" for full or "step" for incremental
+-- @return gc statistics table
 function timed_gc(type)
    local stat = {}
    local t0 = {}
