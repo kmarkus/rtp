@@ -15,9 +15,18 @@ local us_per_s = 1000000
 -- @param sec seconds
 -- @param nsec nanoseconds
 function normalize(sec, nsec)
-   local sec_inc = math.floor(nsec / ns_per_s)
-   local nsec_rest = nsec % ns_per_s
-   return sec + sec_inc, nsec_rest
+   if sec < 0 then
+      nsec = nsec + sec * ns_per_s
+      sec = 0
+   end
+
+   if nsec > ns_per_s then
+      local sec_inc = math.floor(nsec / ns_per_s)
+      local nsec_rest = nsec % ns_per_s
+      sec = sec + sec_inc
+      nsec = nsec_rest
+   end
+   return sec, nsec
 end
 
 --- Subtract a timespec from another and normalize
@@ -52,9 +61,7 @@ end
 -- @param t timespec to divide
 -- @param d divisor
 function div(t, d)
-   local sec = t.sec / d
-   local nsec = t.nsec / d
-   return sec, nsec
+   return normalize(t.sec / d, t.nsec / d)
 end
 
 --- Compare to timespecs
