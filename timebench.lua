@@ -1,4 +1,7 @@
---- Small module to support timing benchmarks in Lua
+--- Create timing benchmarks in Lua.
+-- This module permits creating timing benchmark functions.
+-- @release Released dual BSD/LGPG.
+-- @copyright Markus Klotzbuecher, Katholieke Universiteit Leuven, Belgium.
 
 require "time"
 require "rtp"

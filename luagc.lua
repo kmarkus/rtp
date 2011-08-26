@@ -1,5 +1,5 @@
--- little lua garbage collection helper module
--- for timed collections depends on rtp module
+--- Garbage collection utilities.
+-- For executing timed collections depends on rtp module
 
 require("time")
 require("rtp")
@@ -25,7 +25,7 @@ function gcstat_tostring(s)
    ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")"
 end
 
---- perform a timed gc run
+--- Perform a timed gc run.
 -- todo: needs update to new syntax!
 -- @param type "collect" for full or "step" for incremental
 -- @return gc statistics table

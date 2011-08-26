@@ -36,5 +36,8 @@ rtp.o: rtp.c
 rtp.so: rtp.o
 	${CC} -shared ${LDFLAGS} -llua5.1 rtp.o -o rtp.so
 
+docs:
+	luadoc --nofiles -d htmldoc/ .
+
 clean:
 	rm -f *.o *.so *~ *~ core

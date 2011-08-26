@@ -1,0 +1,19 @@
+--- Realtime POSIX Lua module API.
+-- @release Released under DualBSD/LGPG
+-- @copyright Markus Klotzbuecher, Katholieke Universiteit Leuven, Belgium.
+
+module 'rtp'
+
+--- Call mlockall(2).
+-- This function may require root priviledges.
+-- @param one of the following strings: 'MCL_CURRENT', 'MCL_FUTURE' or 'MCL_BOTH'
+-- @return true if succeeded, false otherwise.
+function rtp.mlockall(type)
+
+
+--- Call munlockall(2)
+-- @return true if succeeded, false otherwise.
+function rtp.munlockall()
+
+
+

@@ -1,4 +1,4 @@
---- sys/time.h like operations
+--- Various sys/time.h like operations.
 --
 -- take struct timespec tables with 'sec' and 'nsec' fields as input
 -- and return two values sec, nsec
