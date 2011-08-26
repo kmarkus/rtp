@@ -50,7 +50,7 @@ function add(a, b)
    local sec = a.sec + b.sec
    local nsec = a.nsec + b.nsec
 
-   if nsec >= ns_per_s then
+   while nsec >= ns_per_s do
       sec = sec + 1
       nsec = nsec - ns_per_s
    end

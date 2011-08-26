@@ -11,7 +11,7 @@ local header = "Lua cyclictest v".. tostring(version)
 local verb = true
 local prio = 80
 local interval = 1000
-local loops = 0
+local loops = 1000
 local sched = 'SCHED_FIFO'
 
 function usage()
@@ -19,7 +19,7 @@ function usage()
 %s
 Usage:	
     cyclictest <options>
-        -p PRIO		realtime priority
+        -p PRIO		realtime priority (default=80)
 	-l LOOPS	number of loops (default=0 (endless))
 	-i INTERVAL	interval between wakeups in us (default 1000)
 	-v	 	enable verbose output
@@ -53,7 +53,7 @@ function setup_opts(opts)
       prio = tonumber(opts['-p'][1]) 
    end
    assert(type(prio)=='number', "Invalid priority")
-   assert((prio<99 and prio>0), "Invalid real-time priority (0-99): " .. prio)
+   assert((prio<=99 and prio>0), "Invalid real-time priority (0-99): " .. prio)
 
    if prio == 0 then sched = 'SCHED_OTHER' end
 
