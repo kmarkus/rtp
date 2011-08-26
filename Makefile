@@ -40,4 +40,4 @@ docs:
 	luadoc --nofiles -d htmldoc/ .
 
 clean:
-	rm -f *.o *.so *~ *~ core
+	rm -rf *.o *.so *~ *~ core htmldoc
