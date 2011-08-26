@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 
-require("rtposix")
+require("rtp")
 require("time")
 require("timebench")
 require("utils")
@@ -73,10 +73,10 @@ log("   Loops:     ", loops)
 log("   Scheduler: ", sched)
 
 -- mlockall
-if not rtposix.mlockall("MCL_BOTH") then error("mlockall failed.") end
+if not rtp.mlockall("MCL_BOTH") then error("mlockall failed.") end
 
 -- sched_setscheduler
-if not rtposix.sched_setscheduler(0, sched, prio) then
+if not rtp.pthread.setschedparam(0, sched, prio) then
    error("sched_setscheduler failed!")
 end
 
@@ -92,12 +92,12 @@ local davg = { sec=0, nsec=0 }
 local cnt = 0
 
 -- fireup
-tcur.sec, tcur.nsec = rtposix.clock_gettime('CLOCK_MONOTONIC')
+tcur.sec, tcur.nsec = rtp.clock.gettime('CLOCK_MONOTONIC')
 tnext.sec, tnext.nsec = time.add(tcur, intv)
-rtposix.clock_nanosleep('CLOCK_MONOTONIC', 'abs', tnext.sec, tnext.nsec)
+rtp.clock.nanosleep('CLOCK_MONOTONIC', 'abs', tnext.sec, tnext.nsec)
 
 while cnt < loops do
-   tcur.sec, tcur.nsec = rtposix.clock_gettime('CLOCK_MONOTONIC')
+   tcur.sec, tcur.nsec = rtp.clock.gettime('CLOCK_MONOTONIC')
    diff.sec, diff.nsec = time.sub(tcur, tnext)
 
    if time.cmp(diff, dmin) == -1 then
@@ -112,7 +112,7 @@ while cnt < loops do
    
    tnext.sec, tnext.nsec = time.add(tnext, intv)
    cnt=cnt+1
-   rtposix.clock_nanosleep('CLOCK_MONOTONIC', 'abs', tnext.sec, tnext.nsec)
+   rtp.clock.nanosleep('CLOCK_MONOTONIC', 'abs', tnext.sec, tnext.nsec)
 end
 
 print("intv: " .. time.ts2str(intv),

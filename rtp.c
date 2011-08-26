@@ -13,16 +13,13 @@ extern "C" {
 #include <lauxlib.h>
 #include <lualib.h>
 
-int luaopen_rtposix(lua_State *L);
+int luaopen_rtp(lua_State *L);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#define ERRBUF_LEN 30
-
-#define DEBUG
+#undef DEBUG
 
 #ifdef DEBUG
 # define DBG(fmt, args...) printf("%s: " fmt "\n", __FUNCTION__, ##args)
@@ -30,8 +27,9 @@ int luaopen_rtposix(lua_State *L);
 # define DBG(fmt, args...) do { } while(0);
 #endif
 
+
 /*
- * helpers
+ * clock functions
  */
 
 static const int clock_nums[] =
@@ -45,11 +43,10 @@ static const char *const clock_ids[] =
 static clockid_t check_clockid(lua_State *L, int idx)
 {
 	int pos = luaL_checkoption(L, idx, NULL, clock_ids);
-	DBG("check_clockid %s, %d", clock_ids[pos], clock_nums[pos]);
 	return clock_nums[pos];
 }
 
-static int lua_pushtimespec(lua_State *L, struct timespec *ts)
+static int pushtimespec(lua_State *L, struct timespec *ts)
 {
 	lua_pushnumber(L, ts->tv_sec);
 	lua_pushnumber(L, ts->tv_nsec);
@@ -60,14 +57,14 @@ static int lua_pushtimespec(lua_State *L, struct timespec *ts)
  *
  * REALTIME, MONOTONIC, PROCESS_CPUTIME_ID, THREAD_CPUTIME_ID
  */
-static int lua_clock_getres(lua_State *L)
+static int rtp_clock_getres(lua_State *L)
 {
 	clockid_t clockid;
 	struct timespec res;
 
 	clockid = check_clockid(L, 1);
 	clock_getres(clockid, &res);
-	return lua_pushtimespec(L, &res);
+	return pushtimespec(L, &res);
 }
 
 /* arg: <clock id>:
@@ -75,20 +72,19 @@ static int lua_clock_getres(lua_State *L)
  * REALTIME, MONOTONIC, PROCESS_CPUTIME_ID, THREAD_CPUTIME_ID
  */
 
-static int lua_clock_gettime(lua_State *L)
+static int rtp_clock_gettime(lua_State *L)
 {
 	clockid_t clockid;
 	struct timespec res;
 
 	clockid = check_clockid(L, 1);
 	clock_gettime(clockid, &res);
-	return lua_pushtimespec(L, &res);
+	return pushtimespec(L, &res);
 }
 
 /* tbd: clock_settime */
-
 /* args: clock_id, flags (rel|abs), sec, nsec */
-static int lua_clock_nanosleep(lua_State *L)
+static int rtp_clock_nanosleep(lua_State *L)
 {
 	clockid_t clockid;
 	const char *flag;
@@ -120,13 +116,69 @@ static int lua_clock_nanosleep(lua_State *L)
 	return 1;
 }
 
+static const struct luaL_Reg rtp_clock [] = {
+	{"gettime", rtp_clock_gettime},
+	{"getres", rtp_clock_getres},
+	{"nanosleep", rtp_clock_nanosleep},
+	{NULL, NULL}
+};
+
+
 /*
- * mlockall
+ * pthread
+ */
+
+static const int schedpol_num[] = {
+	SCHED_OTHER, SCHED_FIFO, SCHED_RR
+};
+static const char *const schedpol_ids[] = {
+	"SCHED_OTHER", "SCHED_FIFO", "SCHED_RR", NULL
+};
+
+static int check_schedpol(lua_State *L, int idx)
+{
+	int pos = luaL_checkoption(L, idx, NULL, schedpol_ids);
+	return schedpol_num[pos];
+}
+
+/* args: pid, policy, prio */
+static int rtp_pthread_setschedparam(lua_State *L)
+{
+	int policy;
+	pthread_t tid;
+	struct sched_param param;
+
+	memset(&param, 0, sizeof(struct sched_param));
+
+	tid = luaL_checknumber(L, 1);
+	tid = (tid != 0) ? tid : pthread_self();
+	policy = check_schedpol(L, 2);
+
+	param.sched_priority = (policy == SCHED_OTHER) ? 0 : luaL_checknumber(L, 3);
+
+	DBG("pid=%lu, policy=%s, prio=%d", tid, schedpol_ids[policy], param.sched_priority);
+
+	if(pthread_setschedparam(tid, policy, &param))
+		luaL_error(L, "pthread_setschedparam failed: %s", strerror(errno));
+
+	lua_pushboolean(L, 1);
+	return 1;
+}
+
+static const struct luaL_Reg rtp_pthread [] = {
+	{"setschedparam", rtp_pthread_setschedparam},
+	{NULL, NULL}
+};
+
+/*
+ * misc toplevel
+ */
+
+/* mlockall
  *
  * args: flag MCL_CURRENT | MCL_FUTURE
  */
-
-static int lua_mlockall(lua_State *L)
+static int rtp_mlockall(lua_State *L)
 {
 	const char *str_flag;
 	int flag, ret;
@@ -157,7 +209,7 @@ static int lua_mlockall(lua_State *L)
 	return 1;
 }
 
-static int lua_munlockall(lua_State *L)
+static int rtp_munlockall(lua_State *L)
 {
 	int ret;
 
@@ -171,54 +223,15 @@ static int lua_munlockall(lua_State *L)
  	return 1;
 }
 
-static const int schedpol_num[] = {
-	SCHED_OTHER, SCHED_FIFO, SCHED_RR
-};
-static const char *const schedpol_ids[] = {
-	"SCHED_OTHER", "SCHED_FIFO", "SCHED_RR", NULL
-};
-
-static int check_schedpol(lua_State *L, int idx)
-{
-	int pos = luaL_checkoption(L, idx, NULL, schedpol_ids);
-	return schedpol_num[pos];
-}
-
-/* args: pid, policy, prio */
-static int pthread_setschedparam(lua_State *L)
-{
-	int policy;
-	pthread_t tid;
-	struct sched_param param;
-
-	memset(&param, 0, sizeof(struct sched_param));
-
-	tid = luaL_checknumber(L, 1);
-	tid = (tid != 0) ? tid : pthread_self();
-	policy = check_schedpol(L, 2);
-
-	param.sched_priority = (policy == SCHED_OTHER) ? 0 : luaL_checknumber(L, 3);
-
-	DBG("pid=%lu, policy=%s, prio=%d", tid, schedpol_ids[policy], param.sched_priority);
-
-	if(pthread_setschedparam(tid, policy, &param))
-		luaL_error(L, "pthread_setschedparam failed: %s", strerror(errno));
-
-	lua_pushboolean(L, 1);
-	return 1;
-}
-
-static const struct luaL_Reg rtposix [] = {
-	{"clock_gettime", lua_clock_gettime},
-	{"clock_getres", lua_clock_getres},
-	{"clock_nanosleep", lua_clock_nanosleep},
-	{"mlockall", lua_mlockall},
-	{"munlockall", lua_munlockall},
-	{"pthread_setschedparam", pthread_setschedparam},
+static const struct luaL_Reg rtp [] = {
+	{"mlockall", rtp_mlockall},
+	{"munlockall", rtp_munlockall},
 	{NULL, NULL}
 };
 
-int luaopen_rtposix(lua_State *L) {
-	luaL_register(L, "rtposix", rtposix);
+int luaopen_rtp(lua_State *L) {
+	luaL_register(L, "rtp.clock", rtp_clock);
+	luaL_register(L, "rtp.pthread", rtp_pthread);
+	luaL_register(L, "rtp", rtp);
 	return 1;
 }

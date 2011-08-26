@@ -1,4 +1,4 @@
-require("rtposix")
+require("rtp")
 require("luagc")
 require("time")
 
@@ -67,7 +67,7 @@ function do_test(num_runs, garbage_tabnum, garbage_tabsize,
 			 ", min: " .. time.ts2str(stats.dur_min),
 			 ", avg: " .. time.ts2str(time.div(stats.dur_avg, i)) .. "\n")
       end
-      rtposix.nanosleep("MONOTONIC", "rel", 0, sleep_ns)
+      rtp.clock.nanosleep("MONOTONIC", "rel", 0, sleep_ns)
    end
    return stats
 end
@@ -100,8 +100,8 @@ for k,v in pairs(par) do
    log("\t", k, ": ", tostring(v))
 end
 
-rtposix.mlockall("MCL_BOTH")
-rtposix.sched_setscheduler(0, "SCHED_FIFO", 99)
+rtp.mlockall("MCL_BOTH")
+rtp.pthread.setschedparam(0, "SCHED_FIFO", 99)
 
 luagc.stop()
 

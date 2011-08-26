@@ -1,10 +1,10 @@
 -- little lua garbage collection helper module
--- for timed collections depends on rtposix module
+-- for timed collections depends on rtp module
 
 require("time")
-require("rtposix")
+require("rtp")
 
-local collectgarbage, time, rtposix, assert, math, io = collectgarbage, time, rtposix, assert, math, io
+local collectgarbage, time, rtp, assert, math, io = collectgarbage, time, rtp, assert, math, io
 
 module("luagc")
 
@@ -37,13 +37,13 @@ function timed_gc(type)
    stat.type = type
    stat.mem0 = mem_usage()
 
-   t0 = rtposix.gettime("MONOTONIC")
+   t0 = rtp.gettime("MONOTONIC")
    collectgarbage(type)
 
    -- collectgarbage automatically restars gc
    stop()
 
-   t1 = rtposix.gettime("MONOTONIC")
+   t1 = rtp.clock.gettime("MONOTONIC")
 
    stat.mem1 = mem_usage()
    stat.dur = time.sub(t1,t0)

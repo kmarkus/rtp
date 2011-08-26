@@ -1,11 +1,11 @@
 --- Small module to support timing benchmarks in Lua
 
 require "time"
-require "rtposix"
+require "rtp"
 
 
 local time = time
-local rtposix = rtposix
+local rtp = rtp
 
 local error = error
 local io = io
@@ -23,7 +23,7 @@ module("timebench")
 --    'get':	returns a table of time statistics
 --    'print':	print statistics
 --    'clear':	clear statistics
---
+-- @param name string name to print in stats
 function create_bench(name)
    local name = name or ""
    local stats = {}
@@ -58,11 +58,11 @@ function create_bench(name)
 		clear()
 	     elseif cmd == 'start' then
 		if active then error("bench error: 'start' command while active!") end
-		tstart.sec, tstart.nsec = rtposix.clock_gettime('CLOCK_MONOTONIC')
+		tstart.sec, tstart.nsec = rtp.clock.gettime('CLOCK_MONOTONIC')
 		active = true
 	     elseif cmd == 'stop' then
 		if not active then error("bench error: 'stop' command while inactive!") end
-		tend.sec, tend.nsec = rtposix.clock_gettime('CLOCK_MONOTONIC')
+		tend.sec, tend.nsec = rtp.clock.gettime('CLOCK_MONOTONIC')
 		active = false
 
 		-- update stats
