@@ -48,14 +48,14 @@ function do_test(num_runs, garbage_tabnum, garbage_tabsize,
 
       s = luagc.timed_gc(type)
 
-      stats.dur_avg = time.add(stats.dur_avg, s.dur)
+      stats.dur_avg.sec, stats.dur_avg.nsec = time.add(stats.dur_avg, s.dur)
 
       if time.cmp(s.dur, stats.dur_min) < 0 then
-	 stats.dur_min = s.dur
+	 stats.dur_min.sec, stats.dur_max.nsec = s.dur.sec, s.dur.nsec
       end
 
       if time.cmp(s.dur, stats.dur_max) > 0 then
-	 stats.dur_max = s.dur
+	 stats.dur_max.sec, stats.dur_max.nsec = s.dur.sec, s.dur.nsec
       end
 
       if not quiet then
@@ -63,11 +63,13 @@ function do_test(num_runs, garbage_tabnum, garbage_tabsize,
       end
 
       if i % 10000 == 0 then
-	 io.stderr:write("max: " .. time.ts2str(stats.dur_max),
+	 local avg = {}
+	 avg.sec, avg.nsec = time.div(stats.dur_avg, i)
+	 io.stderr:write("max: " .. time.ts2str(stats.dur_max), 
 			 ", min: " .. time.ts2str(stats.dur_min),
-			 ", avg: " .. time.ts2str(time.div(stats.dur_avg, i)) .. "\n")
+			 ", avg: " .. time.ts2str(avg) .. "\n")
       end
-      rtp.clock.nanosleep("MONOTONIC", "rel", 0, sleep_ns)
+      rtp.clock.nanosleep("CLOCK_MONOTONIC", "rel", 0, sleep_ns)
    end
    return stats
 end
@@ -122,8 +124,11 @@ luagc.gcstat_tostring(luagc.timed_gc("collect"))
 log("Statistics")
 log("\tmax dur: ",  time.ts2str(stats.dur_max))
 log("\tmin dur: ",  time.ts2str(stats.dur_min))
-log("\tavg dur: ",  time.ts2us(time.div(stats.dur_avg, par.num_runs)))
+
+local avg = {}
+avg.sec, avg.nsec = time.div(stats.dur_avg, par.num_runs)
+log("\tavg dur: ",  time.ts2us(avg))
 
 if par.quiet then
-   print(time.ts2us(stats.dur_max) .. ", " .. time.ts2us(stats.dur_min) .. ", " .. time.ts2us(time.div(stats.dur_avg, par.num_runs)))
+   print(time.ts2us(stats.dur_max) .. ", " .. time.ts2us(stats.dur_min) .. ", " .. time.ts2us(avg))
 end

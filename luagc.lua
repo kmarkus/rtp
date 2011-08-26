@@ -30,23 +30,24 @@ end
 -- @param type "collect" for full or "step" for incremental
 -- @return gc statistics table
 function timed_gc(type)
-   local stat = {}
+   local stat = { dur={} }
+   local dur = stat.dur
    local t0 = {}
    local t1 = {}
 
    stat.type = type
    stat.mem0 = mem_usage()
 
-   t0 = rtp.gettime("MONOTONIC")
+   t0.sec, t0.nsec = rtp.clock.gettime("CLOCK_MONOTONIC")
    collectgarbage(type)
 
    -- collectgarbage automatically restars gc
    stop()
 
-   t1 = rtp.clock.gettime("MONOTONIC")
+   t1.sec, t1.nsec = rtp.clock.gettime("CLOCK_MONOTONIC")
 
    stat.mem1 = mem_usage()
-   stat.dur = time.sub(t1,t0)
+   dur.sec, dur.nsec = time.sub(t1,t0)
 
    return stat
 end
