@@ -8,7 +8,8 @@ require("utils")
 local version = 0.1
 local header = "Lua cyclictest v".. tostring(version)
 
-local verb = true
+local csv = false
+local verb = false
 local prio = 80
 local interval = 1000
 local loops = 1000
@@ -17,13 +18,18 @@ local sched = 'SCHED_FIFO'
 function usage()
    print(( [=[
 %s
-Usage:	
+Usage:
     cyclictest <options>
-        -p PRIO		realtime priority (default=80)
+	-p PRIO		realtime priority (default=80)
 	-l LOOPS	number of loops (default=0 (endless))
 	-i INTERVAL	interval between wakeups in us (default 1000)
 	-v	 	enable verbose output
      ]=] ):format(header))
+end
+
+function round(num, idp)
+   local mult = 10^(idp or 0)
+   return math.floor(num * mult + 0.5) / mult
 end
 
 -- if verbose, log to stderr
@@ -40,7 +46,7 @@ function setup_opts(opts)
    if opts['-h'] then usage(); os.exit(0) end
 
    if opts['-v'] then
-      if not verb then verb = true; log("Verbose output enabled.") end
+      if not verb then verb = true end
    end
 
    if opts['-l'] then
@@ -50,7 +56,7 @@ function setup_opts(opts)
    if loops == 0 then loops = math.huge end
 
    if opts['-p'] then
-      prio = tonumber(opts['-p'][1]) 
+      prio = tonumber(opts['-p'][1])
    end
    assert(type(prio)=='number', "Invalid priority")
    assert((prio<=99 and prio>0), "Invalid real-time priority (0-99): " .. prio)
@@ -60,6 +66,8 @@ function setup_opts(opts)
    if opts['-i'] then
       interval = tonumber(opts['-i'][1])
    end
+
+   if opts['-csv'] then csv = true end
    assert(type(interval)=='number' and interval > 0 , "Invalid interval")
 end
 
@@ -67,6 +75,7 @@ local opts = utils.proc_args(arg)
 setup_opts(opts)
 
 log(header)
+log("   System:    ", rtp.sysinfo())
 log("   Priority:  ", prio)
 log("   Interval:  ", interval)
 log("   Loops:     ", loops)
@@ -109,14 +118,23 @@ while cnt < loops do
    end
 
    davg.sec, davg.nsec = time.add(davg, diff)
-   
+
    tnext.sec, tnext.nsec = time.add(tnext, intv)
    cnt=cnt+1
    rtp.clock.nanosleep('CLOCK_MONOTONIC', 'abs', tnext.sec, tnext.nsec)
 end
 
-print("intv: " .. time.ts2str(intv),
-      "cnt: " .. tostring(cnt), 
-      "min: " .. time.ts2str(dmin),
-      "max: " .. time.ts2str(dmax),
-      "avg: " .. time.tostr_us(time.div(davg, cnt)))
+local avg = {}
+avg.sec, avg.nsec = time.div(davg, cnt)
+
+log("intv: " .. time.ts2str(intv))
+log("cnt: " .. tostring(cnt))
+log("min: " .. time.ts2str(dmin))
+log("max: " .. time.ts2str(dmax))
+log("avg: " .. time.ts2str(avg))
+
+if csv then
+   print(('"p:%d (%s), i:%d, l:%d", %d, %d, %d'):format(prio, sched, interval,
+							loops, round(time.ts2us(dmin)),
+							round(time.ts2us(dmax)), round(time.ts2us(avg))))
+end
