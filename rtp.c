@@ -223,9 +223,20 @@ static int rtp_munlockall(lua_State *L)
  	return 1;
 }
 
+static int rtp_sysinfo(lua_State *L)
+{
+#ifdef __XENO__
+	lua_pushstring(L, "xenomai");
+#else
+	lua_pushstring(L, "gnulinux");
+#endif
+	return 1;
+}
+
 static const struct luaL_Reg rtp [] = {
 	{"mlockall", rtp_mlockall},
 	{"munlockall", rtp_munlockall},
+	{"sysinfo", rtp_sysinfo},
 	{NULL, NULL}
 };
 

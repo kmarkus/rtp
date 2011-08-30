@@ -1,8 +1,9 @@
 --- Various sys/time.h like operations.
---
--- take struct timespec tables with 'sec' and 'nsec' fields as input
+-- Take struct timespec tables with 'sec' and 'nsec' fields as input
 -- and return two values sec, nsec
---
+-- @release Released under DualBSD/LGPG
+-- @copyright Markus Klotzbuecher, Katholieke Universiteit Leuven, Belgium.
+
 local math = math
 
 module("time")

@@ -11,9 +11,12 @@ module 'rtp'
 function rtp.mlockall(type)
 
 
---- Call munlockall(2)
+--- Call munlockall(2).
 -- @return true if succeeded, false otherwise.
 function rtp.munlockall()
 
+--- Return the system type.
+-- @return the system type (xenomai or gnulinux) for which the module was compiled
+function rtp.sysinfo()
 
 

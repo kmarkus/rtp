@@ -1,10 +1,8 @@
-
 --- minimal example to get a xenomai lua script up and running
 -- only one mode switch will occur when the script is moved to the
 -- primary domain. After that the loop runs in hard real-time.
 
-require "rtp"
-
+require("rtp")
 
 if not rtp.mlockall("MCL_BOTH") then 
    error("mlockall failed.") 
