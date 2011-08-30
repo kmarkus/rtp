@@ -16,16 +16,26 @@ local us_per_s = 1000000
 -- @param sec seconds
 -- @param nsec nanoseconds
 function normalize(sec, nsec)
-   if sec < 0 then
-      nsec = nsec + sec * ns_per_s
-      sec = 0
-   end
-
-   if nsec > ns_per_s then
-      local sec_inc = math.floor(nsec / ns_per_s)
-      local nsec_rest = nsec % ns_per_s
-      sec = sec + sec_inc
-      nsec = nsec_rest
+   if sec > 0 and nsec > 0 then
+      while nsec >= ns_per_s do
+	 sec = sec + 1
+	 nsec = nsec - ns_per_s
+      end
+   elseif sec > 0 and nsec < 0 then
+      while nsec <= -ns_per_s do
+	 sec = sec - 1
+	 nsec = nsec + ns_per_s
+      end
+   elseif sec < 0 and nsec > 0 then
+      while nsec > 0 do
+	 sec = sec + 1
+	 nsec = nsec - ns_per_s
+      end
+   elseif sec < 0 and nsec < 0 then
+      while nsec <= -ns_per_s do
+	 sec = sec - 1
+	 nsec = nsec + ns_per_s
+      end
    end
    return sec, nsec
 end
@@ -36,12 +46,7 @@ end
 function sub(a, b)
    local sec = a.sec - b.sec
    local nsec = a.nsec - b.nsec
-
-   if nsec < 0 then
-      sec = sec - 1
-      nsec = nsec + ns_per_s
-   end
-   return sec, nsec
+   return normalize(sec, nsec)
 end
 
 --- Add a timespec from another and normalize
@@ -50,12 +55,7 @@ end
 function add(a, b)
    local sec = a.sec + b.sec
    local nsec = a.nsec + b.nsec
-
-   while nsec >= ns_per_s do
-      sec = sec + 1
-      nsec = nsec - ns_per_s
-   end
-   return sec, nsec
+   return normalize(sec, nsec)
 end
 
 --- Divide a timespec inplace
@@ -73,6 +73,14 @@ function cmp(t1, t2)
    elseif (t1.nsec > t2.nsec) then return 1
    elseif (t1.nsec < t2.nsec) then return -1
    else return 0 end
+end
+
+-- Return absolute timespec.
+-- @param ts timespec
+-- @return absolute sec
+-- @return absolute nsec
+function abs(ts)
+   return math.abs(ts.sec), math.abs(ts.nsec)
 end
 
 --- Convert timespec to microseconds
