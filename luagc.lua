@@ -101,7 +101,6 @@ function create_bench(gctype)
 
 		if time.cmp(cur.dur, dur_max) > 0 then
 		   dur_max.sec, dur_max.nsec = cur.dur.sec, cur.dur.nsec
-		   io.stderr:write("cnt: " .. tostring(cnt), ", new max: " .. time.ts2str(dur_max) .. '\n')
 		end
 	     elseif cmd == 'get_results' then return { dur_min, dur_max, dur_tot, cnt }
 	     elseif cmd == 'print_results' then
