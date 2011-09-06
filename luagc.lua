@@ -8,7 +8,8 @@
 require("time")
 require("rtp")
 
-local collectgarbage, time, rtp, assert, math, io = collectgarbage, time, rtp, assert, math, io
+local collectgarbage, time, rtp, assert, math, io, tostring =
+   collectgarbage, time, rtp, assert, math, io, tostring
 
 module("luagc")
 
@@ -85,28 +86,36 @@ function create_bench(gctype)
    local stats = {}
    stats.dur_min = { sec=math.huge, nsec=math.huge }
    stats.dur_max = { sec=0, nsec=0 }
-   stats.dur_avg = { sec=0, nsec=0 }
+   stats.dur_tot = { sec=0, nsec=0 }
    stats.cnt = 0
 
+   local dur_min = stats.dur_min
+   local dur_max = stats.dur_max
+   local dur_tot = stats.dur_tot
+   local cnt = stats.cnt
+
    return function (cmd)
-	     if cmd == 'get_results' then
-		return stats
+	     if cmd == nil then
+		cnt = cnt+1
+		local cur = timed_gc(gctype)
+		dur_tot.sec, dur_tot.nsec = time.add(dur_tot, cur.dur)
+
+		if time.cmp(cur.dur, dur_min) < 0 then
+		   dur_min.sec, dur_min.nsec = cur.dur.sec, cur.dur.nsec
+		end
+
+		if time.cmp(cur.dur, stats.dur_max) > 0 then
+		   dur_max.sec, dur_max.nsec = cur.dur.sec, cur.dur.nsec
+		end
+	     elseif cmd == 'get_results' then return stats
 	     elseif cmd == 'print_results' then
-		io.stderr:write("max: " .. time.ts2str(stats.dur_max),
-				", min: " .. time.ts2str(stats.dur_min),
-				", avg: " .. time.ts2str(time.div(stats.dur_avg, stats.cnt)) .. "\n")
+		local dur_avg = {}
+		dur_avg.sec, dur_avg.nsec = time.div(dur_tot, cnt)
+		io.stderr:write("max: " .. time.ts2str(dur_max),
+				", min: " .. time.ts2str(dur_min),
+				", avg: " .. time.ts2str(dur_avg) .. "\n")
 	     else
-		stats.cnt = stats.cnt+1
-		local s = timed_gc(type)
-		stats.dur_avg = time.add(stats.dur_avg, s.dur)
-
-		if time.cmp(s.dur, stats.dur_min) < 0 then
-		   stats.dur_min = s.dur
-		end
-
-		if time.cmp(s.dur, stats.dur_max) > 0 then
-		   stats.dur_max = s.dur
-		end
+		error("create_bench/timed_gc: invalid command " .. tostring(cmd))
 	     end
 	  end
 end
