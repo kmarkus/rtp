@@ -72,6 +72,7 @@ end
 
 --- Create a gc benchmark closure.
 -- This closure which will perform and collections and record the
+
 -- worst case timing behavior. The function accepts the following
 -- parameters: <br>
 --	 without arguments for performing a collection <br>
@@ -83,16 +84,10 @@ function create_bench(gctype)
    assert(gctype == 'collect' or gctype == 'step',
 	  "create_bench: argument must be either 'collect' or 'step'")
 
-   local stats = {}
-   stats.dur_min = { sec=math.huge, nsec=math.huge }
-   stats.dur_max = { sec=0, nsec=0 }
-   stats.dur_tot = { sec=0, nsec=0 }
-   stats.cnt = 0
-
-   local dur_min = stats.dur_min
-   local dur_max = stats.dur_max
-   local dur_tot = stats.dur_tot
-   local cnt = stats.cnt
+   local dur_min = { sec=math.huge, nsec=math.huge }
+   local dur_max = { sec=0, nsec=0 }
+   local dur_tot = { sec=0, nsec=0 }
+   local cnt = 0
 
    return function (cmd)
 	     if cmd == nil then
@@ -104,14 +99,16 @@ function create_bench(gctype)
 		   dur_min.sec, dur_min.nsec = cur.dur.sec, cur.dur.nsec
 		end
 
-		if time.cmp(cur.dur, stats.dur_max) > 0 then
+		if time.cmp(cur.dur, dur_max) > 0 then
 		   dur_max.sec, dur_max.nsec = cur.dur.sec, cur.dur.nsec
+		   io.stderr:write("cnt: " .. tostring(cnt), ", new max: " .. time.ts2str(dur_max) .. '\n')
 		end
-	     elseif cmd == 'get_results' then return stats
+	     elseif cmd == 'get_results' then return { dur_min, dur_max, dur_tot, cnt }
 	     elseif cmd == 'print_results' then
 		local dur_avg = {}
 		dur_avg.sec, dur_avg.nsec = time.div(dur_tot, cnt)
-		io.stderr:write("max: " .. time.ts2str(dur_max),
+		io.stderr:write("cnt: " .. tostring(cnt),
+				", max: " .. time.ts2str(dur_max),
 				", min: " .. time.ts2str(dur_min),
 				", avg: " .. time.ts2str(dur_avg) .. "\n")
 	     else
