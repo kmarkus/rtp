@@ -106,7 +106,7 @@ function create_bench(gctype)
 	     elseif cmd == 'print_results' then
 		local dur_avg = {}
 		dur_avg.sec, dur_avg.nsec = time.div(dur_tot, cnt)
-		io.stderr:write("cnt: " .. tostring(cnt),
+		io.stderr:write("gcstats - cnt: " .. tostring(cnt),
 				", max: " .. time.ts2str(dur_max),
 				", min: " .. time.ts2str(dur_min),
 				", avg: " .. time.ts2str(dur_avg) .. "\n")

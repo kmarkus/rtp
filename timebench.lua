@@ -28,6 +28,7 @@ module("timebench")
 function create_bench(name)
    local name = name or ""
    local stats = {}
+   local dur_min, dur_max, total
    local active
 
    local function clear()
@@ -35,6 +36,9 @@ function create_bench(name)
       stats.dur_max = { sec=0, nsec=0 }
       stats.total = { sec=0, nsec=0 }
       stats.cnt = 0
+
+      -- shortcuts to speed up
+      dur_min, dur_max, total = stats.dur_min, stats.dur_max, stats.total
       active = false
    end
    clear()
@@ -44,22 +48,9 @@ function create_bench(name)
    local dur = { sec=0, nsec=0 }
 
    return function (cmd)
-   	     if cmd == 'get' then
-   		return stats
-   	     elseif cmd == 'print' then
-   		local avg = {}
-   		avg.sec, avg.nsec = time.div(stats.total, stats.cnt)
-   		io.stderr:write("Bench " .. name,
-   				": cnt: " .. stats.cnt,
-   				", max: " .. time.ts2str(stats.dur_max),
-   				", min: " .. time.ts2str(stats.dur_min),
-   				", avg: " .. time.ts2str(avg) .. "\n")
-
-   	     elseif cmd == 'clear' then
-   		clear()
-   	     elseif cmd == 'start' then
-   		if active then error("bench error: 'start' command while active!") end
-   		tstart.sec, tstart.nsec = rtp.clock.gettime('CLOCK_MONOTONIC')
+	     if cmd == 'start' then
+		if active then error("bench error: 'start' command while active!") end
+		tstart.sec, tstart.nsec = rtp.clock.gettime('CLOCK_MONOTONIC')
    		active = true
    	     elseif cmd == 'stop' then
    		if not active then error("bench error: 'stop' command while inactive!") end
@@ -69,14 +60,26 @@ function create_bench(name)
    		-- update stats
    		stats.cnt = stats.cnt + 1
    		dur.sec, dur.nsec = time.sub(tend, tstart)
-   		stats.total.sec, stats.total.nsec = time.add(stats.total, dur)
+   		total.sec, total.nsec = time.add(total, dur)
 
-   		if time.cmp(dur, stats.dur_min) < 0 then
-   		   stats.dur_min.sec, stats.dur_min.nsec = dur.sec, dur.nsec
+   		if time.cmp(dur, dur_min) < 0 then
+   		   dur_min.sec, dur_min.nsec = dur.sec, dur.nsec
    		end
-   		if time.cmp(dur, stats.dur_max) > 0 then
-   		   stats.dur_max.sec, stats.dur_max.nsec = dur.sec, dur.nsec
+   		if time.cmp(dur, dur_max) > 0 then
+   		   dur_max.sec, dur_max.nsec = dur.sec, dur.nsec
    		end
+   	     elseif cmd == 'get' then
+   		return stats
+   	     elseif cmd == 'print' then
+   		local avg = {}
+   		avg.sec, avg.nsec = time.div(total, stats.cnt)
+   		io.stderr:write("Bench " .. name,
+   				": cnt: " .. stats.cnt,
+   				", max: " .. time.ts2str(dur_max),
+   				", min: " .. time.ts2str(dur_min),
+   				", avg: " .. time.ts2str(avg) .. "\n")
+	     elseif cmd == 'clear' then
+   		clear()
    	     end
    	  end
 end
