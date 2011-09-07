@@ -3,6 +3,7 @@
 require("rtp")
 require("time")
 require("timebench")
+require("luagc")
 require("utils")
 
 local version = 0.1
@@ -14,16 +15,20 @@ local prio = 80
 local interval = 1000
 local loops = 1000
 local sched = 'SCHED_FIFO'
+local gctype = 'free'
 
 function usage()
    print(( [=[
 %s
 Usage:
     cyclictest <options>
-	-p PRIO		realtime priority (default=80)
-	-l LOOPS	number of loops (default=0 (endless))
-	-i INTERVAL	interval between wakeups in us (default 1000)
-	-v	 	enable verbose output
+	-p PRIO			realtime priority (default=80)
+	-l LOOPS		number of loops (default=0 (endless))
+	-i INTERVAL		interval between wakeups in us (default 1000)
+	-csv			print results as csv
+	-gc <free|off|ctrl>	gc type (default: free)
+	-h			print this help
+	-v	 		enable verbose output
      ]=] ):format(header))
 end
 
@@ -69,17 +74,24 @@ function setup_opts(opts)
 
    if opts['-csv'] then csv = true end
    assert(type(interval)=='number' and interval > 0 , "Invalid interval")
+
+   if opts['-gc'] then
+      gctype = opts['-gc'][1]
+      assert(gctype=='free' or gctype=='ctrl' or gctype=='off',
+	     "Invalid gc type: " .. gctype)
+   end
 end
 
 local opts = utils.proc_args(arg)
 setup_opts(opts)
 
 log(header)
-log("   System:    ", rtp.sysinfo())
-log("   Priority:  ", prio)
-log("   Interval:  ", interval)
-log("   Loops:     ", loops)
-log("   Scheduler: ", sched)
+log("   System:      ", rtp.sysinfo())
+log("   Priority:    ", prio)
+log("   Interval:    ", interval)
+log("   Loops:       ", loops)
+log("   Scheduler:   ", sched)
+log("   GC type:     ", gctype)
 
 -- mlockall
 if not rtp.mlockall("MCL_BOTH") then error("mlockall failed.") end
@@ -99,6 +111,17 @@ local dmin = { sec=math.huge, nsec=math.huge }
 local dmax = { sec=0, nsec=0 }
 local davg = { sec=0, nsec=0 }
 local cnt = 0
+
+
+local function gc() return end
+
+if gctype ~= 'free' then
+   luagc.full()  -- stop the gc
+end
+
+if gctype == 'ctrl' then
+   gc = luagc.step
+end
 
 -- fireup
 tcur.sec, tcur.nsec = rtp.clock.gettime('CLOCK_MONOTONIC')
@@ -121,6 +144,7 @@ while cnt < loops do
 
    tnext.sec, tnext.nsec = time.add(tnext, intv)
    cnt=cnt+1
+   gc()
    rtp.clock.nanosleep('CLOCK_MONOTONIC', 'abs', tnext.sec, tnext.nsec)
 end
 
