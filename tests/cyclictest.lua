@@ -6,6 +6,8 @@ require("timebench")
 require("luagc")
 require("utils")
 
+if tlsf then require("tlsf_ext") end
+
 local version = 0.1
 local header = "Lua cyclictest v".. tostring(version)
 
@@ -16,6 +18,7 @@ local interval = 1000
 local loops = 1000
 local sched = 'SCHED_FIFO'
 local gctype = 'free'
+local gcbench = false
 
 function usage()
    print(( [=[
@@ -80,6 +83,11 @@ function setup_opts(opts)
       assert(gctype=='free' or gctype=='ctrl' or gctype=='off',
 	     "Invalid gc type: " .. gctype)
    end
+
+   if opts['-gcbench'] then
+      assert(gctype=='ctrl', "garbage collection benchmark (-gcbench) only possible with gc type 'ctrl'")
+      gcbench=true
+   end
 end
 
 local opts = utils.proc_args(arg)
@@ -92,6 +100,7 @@ log("   Interval:    ", interval)
 log("   Loops:       ", loops)
 log("   Scheduler:   ", sched)
 log("   GC type:     ", gctype)
+log("   GC bench:    ", gcbench)
 
 -- mlockall
 if not rtp.mlockall("MCL_BOTH") then error("mlockall failed.") end
@@ -120,7 +129,11 @@ if gctype ~= 'free' then
 end
 
 if gctype == 'ctrl' then
-   gc = luagc.step
+   if gcbench then
+      gc = luagc.create_bench('step')
+   else
+      gc = luagc.step
+   end
 end
 
 -- fireup
@@ -161,4 +174,12 @@ if csv then
    print(('"p:%d (%s), i:%d, l:%d", %d, %d, %d'):format(prio, sched, interval,
 							loops, round(time.ts2us(dmin)),
 							round(time.ts2us(dmax)), round(time.ts2us(avg))))
+end
+
+if tlsf_ext then
+   tlsf_ext.info()
+end
+
+if gcbench then
+   gc('print_results')
 end
