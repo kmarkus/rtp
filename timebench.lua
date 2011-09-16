@@ -20,6 +20,7 @@ module("timebench")
 -- command argument. Legal values are:<br>
 --    <code>'start'</code>	start a time measurement<br>
 --    <code>'stop'</code>:	stop the time measurement and update the statistics<br>
+--    <code>'cancel'</code>:	cancel a started time measurement. No change to statistics<br>
 --    <code>'get'</code>:	returns a table of time statistics<br>
 --    <code>'print'</code>:	print statistics<br>
 --    <code>'clear'</code>:	clear statistics<br>
@@ -68,6 +69,9 @@ function create_bench(name)
    		if time.cmp(dur, dur_max) > 0 then
    		   dur_max.sec, dur_max.nsec = dur.sec, dur.nsec
    		end
+	     elseif cmd == 'cancel' then
+		tstart.sec, tstart.nsec = 0, 0
+		active = false
    	     elseif cmd == 'get' then
    		return stats
    	     elseif cmd == 'print' then
