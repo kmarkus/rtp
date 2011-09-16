@@ -22,7 +22,7 @@ function normalize(sec, nsec)
 	 nsec = nsec - ns_per_s
       end
    elseif sec > 0 and nsec < 0 then
-      while nsec <= -ns_per_s do
+      while nsec <= 0 do
 	 sec = sec - 1
 	 nsec = nsec + ns_per_s
       end
@@ -93,7 +93,7 @@ end
 --- Convert a timespec to a string (in micro-seconds)
 --- for pretty printing purposes
 function ts2str(ts)
-   return ts2us(ts) .. "us"
+   return ("%dus"):format(ts2us(ts))
 end
 
 --- Convert timespec to us
@@ -109,5 +109,5 @@ end
 -- @param nsec
 -- @return time string
 function tostr_us(sec, nsec)
-   return tous(sec, nsec) .. "us"
+   return ("%dus"):format(tous(sec, nsec))
 end
