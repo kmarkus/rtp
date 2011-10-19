@@ -1,8 +1,36 @@
+RTP: Lua bindings to Real-Time POSIX services
+---------------------------------------------
 
-How can we evaluate Lua for rt gc
+Building
+--------
 
- - check the impact of one increasing table
- - verify effect of __non_gc table tag (once implemented)
- - how estimate worst case latency introduced by gc?
- - Lund papers
+for Xenomai
 
+$ make XENO=1 or 
+$ make XENO=/path/to/xenomai-installation/
+
+for GNU/Linux:
+
+$ make
+
+Setup your LUA_[C]PATH. Typically something like 
+
+$ export LUA_PATH=";;;/path/to/rtp/?.lua;"
+$ export LUA_CPATH=";;;/path/to/rtp/?.so;"
+
+will do the trick. See the Reference manual [1] for more inforamtion.
+
+Documentation
+-------------
+
+Make sure you have luadoc installed and run:
+$ make docs
+
+This will generate API documentation in htmldoc/
+
+License
+-------
+
+All code is licensed (at your choice) as BSD or LGPL.
+
+[1] http://www.lua.org/manual/5.1/
