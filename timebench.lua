@@ -37,16 +37,10 @@
 -- @release Released dual BSD/LGPG.
 -- @copyright Markus Klotzbuecher, Katholieke Universiteit Leuven, Belgium.
 
-require("time")
-require("rtp")
+local time = require("time")
+local rtp = require("rtp")
 
-local rtp = rtp
-local time = time
-local error = error
-local io = io
-local math = math
-
-module("timebench")
+local M = {}
 
 --- Create a timing measurement closure.
 -- This function returns a function which will measure durations and
@@ -60,7 +54,7 @@ module("timebench")
 --    <code>'clear'</code>:	clear statistics<br>
 -- @param name string name to print in stats
 -- @return benchmark closure function
-function create_bench(name)
+function M.create_bench(name)
    local name = name or ""
    local stats = {}
    local dur_min, dur_max, total
@@ -121,3 +115,5 @@ function create_bench(name)
    	     end
    	  end
 end
+
+return M

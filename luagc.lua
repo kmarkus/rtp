@@ -39,42 +39,39 @@
 -- @author Markus Klotzbuecher <markus.klotzbuecher@mech.kuleuven.be>
 -- @copyright Markus Klotzbuecher, Katholieke Universiteit Leuven, Belgium.
 
-require("time")
-require("rtp")
+local time = require("time")
+local rtp = require("rtp")
 
-local collectgarbage, time, rtp, assert, math, io, tostring =
-   collectgarbage, time, rtp, assert, math, io, tostring
-
-module("luagc")
+local M = {}
 
 --- Stop the garbage collector.
-function stop() collectgarbage("stop") end
+function M.stop() collectgarbage("stop") end
 
 --- Start the garbage collector.
-function start() collectgarbage("restart") end
+function M.start() collectgarbage("restart") end
 
 --- Set the GC pause paramter.
-function set_pause(val) collectgarbage("setpause", val) end
+function M.set_pause(val) collectgarbage("setpause", val) end
 
 --- Set the GC mul paramter.
-function set_stepmul(val) collectgarbage("setstepmul", val) end
+function M.set_stepmul(val) collectgarbage("setstepmul", val) end
 
 --- Get current memory useage.
-function mem_usage() return collectgarbage("count") end
+function M.mem_usage() return collectgarbage("count") end
 
 --- Execute an incremental GC step.
-function step() collectgarbage("step"); stop(); end
+function M.step() collectgarbage("step"); M.stop(); end
 
 --- Execute a full GC collection.
-function full() collectgarbage("collect"); stop() end
+function M.full() collectgarbage("collect"); M.stop() end
 
 --- Step the gc at maximum for us microseconds.
 -- at least one run will be made.
 -- Not yet implemented.
-function step_max_us(us) error("unimplemented") end
+function M.step_max_us(us) error("unimplemented") end
 
 --- Pretty print gc statistics table.
-function gcstat_tostring(s)
+function M.gcstat_tostring(s)
    return "type: " .. s.type .. ", duration: " .. time.ts2str(s.dur) ..
    ", collected: " .. s.mem0 - s.mem1 .. "kb" .. " (" .. s.mem0 .. "/" .. s.mem1 ..")"
 end
@@ -82,23 +79,23 @@ end
 --- Perform a timed gc run.
 -- @param type <code>'collect'</code> for full or <code>'step'</code> for incremental
 -- @return gc statistics table
-function timed_gc(type)
+function M.timed_gc(type)
    local stat = { dur={} }
    local dur = stat.dur
    local t0 = {}
    local t1 = {}
 
    stat.type = type
-   stat.mem0 = mem_usage()
+   stat.mem0 = M.mem_usage()
 
    t0.sec, t0.nsec = rtp.clock.gettime("CLOCK_MONOTONIC")
    collectgarbage(type)
 
-   stop() -- collectgarbage automatically restars gc
+   M.stop() -- collectgarbage automatically restars gc
 
    t1.sec, t1.nsec = rtp.clock.gettime("CLOCK_MONOTONIC")
 
-   stat.mem1 = mem_usage()
+   stat.mem1 = M.mem_usage()
    dur.sec, dur.nsec = time.sub(t1,t0)
 
    return stat
@@ -113,7 +110,7 @@ end
 --	<code>'get_results'</code> returns a timed_gc stats table <br>
 --	<code>'print_results'</code> does what it claims to <br>
 -- @param gctype type (<code>'collect'</code> or <code>'step'</code>) to perform when called without args.
-function create_bench(gctype)
+function M.create_bench(gctype)
 
    assert(gctype == 'collect' or gctype == 'step',
 	  "create_bench: argument must be either 'collect' or 'step'")
@@ -126,7 +123,7 @@ function create_bench(gctype)
    return function (cmd)
 	     if cmd == nil then
 		cnt = cnt+1
-		local cur = timed_gc(gctype)
+		local cur = M.timed_gc(gctype)
 		dur_tot.sec, dur_tot.nsec = time.add(dur_tot, cur.dur)
 
 		if time.cmp(cur.dur, dur_min) < 0 then

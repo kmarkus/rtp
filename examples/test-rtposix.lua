@@ -1,8 +1,8 @@
 #!/usr/bin/env lua
 
-require("rtp")
-require("time")
-require("timebench")
+local rtp = require("rtp")
+local time = require("time")
+local timebench = require("timebench")
 
 -- mlockall/munlockall
 print("mlockall: ", rtp.mlockall("MCL_BOTH"))
