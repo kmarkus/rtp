@@ -1,5 +1,6 @@
-INCLUDE=-I/usr/include/lua5.1/
-LDFLAGS=-llua5.1
+LUA_VERSION=lua5.2
+INCLUDE=-I/usr/include/${LUA_VERSION}
+LDFLAGS=-l${LUA_VERSION}
 CFLAGS=-Wall -Werror
 
 # XENOMAI BUILD
@@ -34,7 +35,7 @@ rtp.o: rtp.c
 	${CC} ${CFLAGS} ${INCLUDE} -fpic -c rtp.c -o $@
 
 rtp.so: rtp.o
-	${CC} -shared ${LDFLAGS} -llua5.1 rtp.o -o rtp.so
+	${CC} -shared ${LDFLAGS} rtp.o -o rtp.so
 
 docs:
 	luadoc --nofiles -d htmldoc/ .

@@ -254,7 +254,7 @@ static int rtp_munlockall(lua_State *L)
 		luaL_error(L, "munlockall failed: %s", strerror(ret));
 
 	lua_pushboolean(L, 1);
- 	return 1;
+	return 1;
 }
 
 static int rtp_sysinfo(lua_State *L)
@@ -275,8 +275,22 @@ static const struct luaL_Reg rtp [] = {
 };
 
 int luaopen_rtp(lua_State *L) {
+
+#if LUA_VERSION_NUM >= 502
+	luaL_newlib(L, rtp);
+
+	lua_pushstring(L, "clock");
+	luaL_newlib(L, rtp_clock);
+	lua_settable(L, -3);
+
+	lua_pushstring(L, "pthread");
+	luaL_newlib(L, rtp_pthread);
+	lua_settable(L, -3);
+
+#else
 	luaL_register(L, "rtp.clock", rtp_clock);
 	luaL_register(L, "rtp.pthread", rtp_pthread);
 	luaL_register(L, "rtp", rtp);
+#endif
 	return 1;
 }
